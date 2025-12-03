@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados - Humboldt HM-5750</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <header>
+        <div class="logo-container">
+            <div class="logo">
+                <i class="fas fa-tools"></i>
+            </div>
+            <div class="branding">
+                <h1>Humboldt HM-5750</h1>
+                <h2>Máquina de Corte Directo con Pesos Muertos</h2>
+                <p>Simulación educativa para ensayos geotécnicos - ASTM D3080, AASHTO T236, BS 1377.7</p>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="la-maquina.html"><i class="fas fa-cogs"></i> La Máquina</a></li>
+            <li><a href="partes.html"><i class="fas fa-toolbox"></i> Partes</a></li>
+            <li><a href="protocolo.html"><i class="fas fa-clipboard-list"></i> Protocolo</a></li>
+            <li><a href="preparacion.html"><i class="fas fa-vial"></i> Preparación</a></li>
+            <li><a href="simulacion.html"><i class="fas fa-play-circle"></i> Simulación</a></li>
+            <li><a href="resultados.html" class="active"><i class="fas fa-chart-line"></i> Resultados</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <section class="section active">
+            <h2>Análisis de Resultados</h2>
+            <p>Interprete los resultados del ensayo de corte directo y determine los parámetros de resistencia al corte del suelo.</p>
+
+            <div class="results-container">
+                <div class="results-charts">
+                    <h3>Gráficos de Resultados</h3>
+                    <div class="chart-row">
+                        <div class="chart-item">
+                            <canvas id="stressStrainChart" width="400" height="250"></canvas>
+                            <p class="chart-title">Esfuerzo de Corte vs. Deformación</p>
+                        </div>
+                        <div class="chart-item">
+                            <canvas id="failureEnvelopeChart" width="400" height="250"></canvas>
+                            <p class="chart-title">Envolvente de Falla</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="results-data">
+                    <h3>Parámetros de Resistencia al Corte</h3>
+
+                    <div class="parameters-container">
+                        <div class="parameter-card">
+                            <div class="parameter-icon">
+                                <i class="fas fa-ruler-combined"></i>
+                            </div>
+                            <div class="parameter-info">
+                                <h4>Cohesión (c)</h4>
+                                <div class="parameter-value" id="cohesionValue">0 kPa</div>
+                                <p>Resistencia al corte independiente del esfuerzo normal</p>
+                            </div>
+                        </div>
+
+                        <div class="parameter-card">
+                            <div class="parameter-icon">
+                                <i class="fas fa-angle-right"></i>
+                            </div>
+                            <div class="parameter-info">
+                                <h4>Ángulo de Fricción (φ)</h4>
+                                <div class="parameter-value" id="frictionAngleValue">0°</div>
+                                <p>Resistencia al corte dependiente del esfuerzo normal</p>
+                            </div>
+                        </div>
+
+                        <div class="parameter-card">
+                            <div class="parameter-icon">
+                                <i class="fas fa-weight-hanging"></i>
+                            </div>
+                            <div class="parameter-info">
+                                <h4>Esfuerzo de Corte Máximo</h4>
+                                <div class="parameter-value" id="maxShearStressValue">0 kPa</div>
+                                <p>Máxima resistencia al corte alcanzada</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="data-table">
+                        <h4>Datos del Ensayo</h4>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Esfuerzo Normal (kPa)</th>
+                                    <th>Esfuerzo de Corte Máximo (kPa)</th>
+                                    <th>Deformación en Falla (mm)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultsTableBody">
+                                <!-- Los datos se llenarán dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="interpretation">
+                <h3>Interpretación de Resultados</h3>
+                <p>Los parámetros de resistencia al corte (cohesión y ángulo de fricción) son fundamentales para el diseño geotécnico. Estos valores se utilizan en:</p>
+
+                <ul>
+                    <li>Análisis de estabilidad de taludes</li>
+                    <li>Diseño de cimentaciones</li>
+                    <li>Cálculo de capacidad de carga</li>
+                    <li>Análisis de empujes de tierra</li>
+                </ul>
+
+                <div class="notes">
+                    <h4>Notas sobre la Interpretación:</h4>
+                    <p>• Para suelos cohesivos (arcillas), la cohesión es el parámetro dominante</p>
+                    <p>• Para suelos granulares (arenas), el ángulo de fricción es más significativo</p>
+                    <p>• Los valores de resistencia residual pueden ser menores que los de pico para algunos suelos</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Humboldt Mfg. Co.</h4>
+                <p>875 Tollgate Road, Elgin, Illinois 60123</p>
+                <p>1.800.544.7220 toll free | 1.708.468.6300 main</p>
+            </div>
+
+            <div class="footer-section">
+                <h4>Humboldt Scientific, Inc.</h4>
+                <p>2525 Atlantic Avenue, Raleigh, North Carolina 27604</p>
+                <p>1.800.537.4183 toll free | 1.919.833.3190 main</p>
+            </div>
+
+            <div class="footer-section">
+                <p>Simulación de Máquina de Corte Directo HM-5750 - Herramienta educativa para ingeniería geotécnica</p>
+                <p>© 2023 - Todos los derechos reservados</p>
+                <p>www.humboldtmfg.com</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
