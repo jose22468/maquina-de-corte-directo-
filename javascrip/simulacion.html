@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulación - Humboldt HM-5750</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <header>
+        <div class="logo-container">
+            <div class="logo">
+                <i class="fas fa-tools"></i>
+            </div>
+            <div class="branding">
+                <h1>Humboldt HM-5750</h1>
+                <h2>Máquina de Corte Directo con Pesos Muertos</h2>
+                <p>Simulación educativa para ensayos geotécnicos - ASTM D3080, AASHTO T236, BS 1377.7</p>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="la-maquina.html"><i class="fas fa-cogs"></i> La Máquina</a></li>
+            <li><a href="partes.html"><i class="fas fa-toolbox"></i> Partes</a></li>
+            <li><a href="protocolo.html"><i class="fas fa-clipboard-list"></i> Protocolo</a></li>
+            <li><a href="preparacion.html"><i class="fas fa-vial"></i> Preparación</a></li>
+            <li><a href="simulacion.html" class="active"><i class="fas fa-play-circle"></i> Simulación</a></li>
+            <li><a href="resultados.html"><i class="fas fa-chart-line"></i> Resultados</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <section class="section active">
+            <h2>Simulación de Ensayo de Corte Directo</h2>
+            <p>Utilice esta simulación interactiva para comprender el proceso de ensayo de corte directo con la máquina HM-5750. Modifique los parámetros del suelo y observe cómo afectan el comportamiento durante el corte.</p>
+
+            <div class="simulation-container">
+                <div class="machine-representation">
+                    <div class="canvas-container">
+                        <canvas id="simulationCanvas" width="800" height="450"></canvas>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="soilType">Tipo de Suelo:</label>
+                        <select id="soilType">
+                            <option value="sand">Arena Limpia (c=0, φ=35°)</option>
+                            <option value="clay">Arcilla (c=25 kPa, φ=20°)</option>
+                            <option value="silt">Limo (c=10 kPa, φ=28°)</option>
+                            <option value="clayeySand">Arena Arcillosa (c=15 kPa, φ=30°)</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="cohesion">Cohesión (c): <span id="cohesionValue">0 kPa</span></label>
+                        <input type="range" id="cohesion" min="0" max="50" value="0" step="1">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="friction">Ángulo de Fricción (φ): <span id="frictionValue">35°</span></label>
+                        <input type="range" id="friction" min="10" max="45" value="35" step="1">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="normalStress">Esfuerzo Normal (σ): <span id="normalStressValue">100 kPa</span></label>
+                        <input type="range" id="normalStress" min="50" max="400" value="100" step="50">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="saturation">Condición:</label>
+                        <select id="saturation">
+                            <option value="dry">Seco</option>
+                            <option value="saturated">Saturado</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="speed">Velocidad de Corte: <span id="speedValue">1.2 mm/min</span></label>
+                        <input type="range" id="speed" min="0.1" max="2.0" value="1.2" step="0.1">
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button id="startBtn"><i class="fas fa-play"></i> Iniciar Ensayo</button>
+                    <button id="pauseBtn" disabled><i class="fas fa-pause"></i> Pausar</button>
+                    <button id="resetBtn" class="reset"><i class="fas fa-redo"></i> Reiniciar</button>
+                </div>
+
+                <div class="results">
+                    <h3>Resultados del Ensayo en Tiempo Real</h3>
+                    <div class="results-grid">
+                        <div class="result-item">
+                            <span class="result-label">Resistencia al Corte (τ):</span>
+                            <span id="shearStrength" class="result-value">-</span>
+                            <span class="result-unit">kPa</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Desplazamiento Horizontal:</span>
+                            <span id="horizontalDeformation" class="result-value">-</span>
+                            <span class="result-unit">mm</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Fuerza de Corte:</span>
+                            <span id="shearForce" class="result-value">-</span>
+                            <span class="result-unit">N</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Deformación Vertical:</span>
+                            <span id="verticalDeformation" class="result-value">-</span>
+                            <span class="result-unit">mm</span>
+                        </div>
+                    </div>
+
+                    <div class="results-chart">
+                        <h4>Curva Esfuerzo-Deformación</h4>
+                        <canvas id="chartCanvas" width="400" height="250"></canvas>
+                    </div>
+
+                    <div class="results-chart">
+                        <h4>Envolvente de Falla de Mohr-Coulomb</h4>
+                        <canvas id="mohrCanvas" width="400" height="250"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="simulation-instructions">
+                <h3>Instrucciones de la Simulación</h3>
+                <div class="instructions-grid">
+                    <div class="instruction">
+                        <h4><i class="fas fa-sliders-h"></i> Parámetros del Suelo</h4>
+                        <p>Ajuste la cohesión y el ángulo de fricción para simular diferentes tipos de suelo. También puede seleccionar un tipo predefinido.</p>
+                    </div>
+                    <div class="instruction">
+                        <h4><i class="fas fa-weight-hanging"></i> Esfuerzo Normal</h4>
+                        <p>Modifique el esfuerzo normal aplicado para observar cómo afecta la resistencia al corte del suelo.</p>
+                    </div>
+                    <div class="instruction">
+                        <h4><i class="fas fa-tint"></i> Condición de Saturación</h4>
+                        <p>Seleccione entre suelo seco o saturado para ver el efecto del agua en el comportamiento del suelo.</p>
+                    </div>
+                    <div class="instruction">
+                        <h4><i class="fas fa-chart-line"></i> Interpretación de Resultados</h4>
+                        <p>Observe las curvas de esfuerzo-deformación y la envolvente de falla para determinar los parámetros de resistencia.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Humboldt Mfg. Co.</h4>
+                <p>875 Tollgate Road, Elgin, Illinois 60123</p>
+                <p>1.800.544.7220 toll free | 1.708.468.6300 main</p>
+            </div>
+
+            <div class="footer-section">
+                <h4>Humboldt Scientific, Inc.</h4>
+                <p>2525 Atlantic Avenue, Raleigh, North Carolina 27604</p>
+                <p>1.800.537.4183 toll free | 1.919.833.3190 main</p>
+            </div>
+
+            <div class="footer-section">
+                <p>Simulación de Máquina de Corte Directo HM-5750 - Herramienta educativa para ingeniería geotécnica</p>
+                <p>© 2023 - Todos los derechos reservados</p>
+                <p>www.humboldtmfg.com</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="simulation.js"></script>
+</body>
+
+</html>
