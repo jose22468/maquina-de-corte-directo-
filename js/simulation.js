@@ -1,4 +1,4 @@
-// simulation.js - Simulación de la máquina de corte directo - VERSIÓN FINAL CORREGIDA
+// simulation.js - Simulación de la máquina de corte directo - VERSIÓN FINAL CON GRÁFICOS ESTABLES
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Inicializando simulación...');
     
@@ -36,19 +36,27 @@ document.addEventListener('DOMContentLoaded', function() {
     let saturation = 'dry';
     let speed = 1.2;
     
-    // Datos para gráficos - ARRAYS VACÍOS
+    // Datos para gráficos
     let chartData = {
-        labels: [],      // Desplazamientos
-        values: []       // Esfuerzos de corte
+        labels: [],
+        values: []
     };
     
     // Límites fijos para los gráficos
     const chartLimits = {
         xMin: 0,
-        xMax: 12,        // Desplazamiento máximo en mm
+        xMax: 12,
         yMin: 0,
-        yMax: 400        // Esfuerzo máximo en kPa
+        yMax: 400  // Este valor se ajusta según el tipo de suelo más adelante
     };
+    
+    // Calcular el límite Y máximo basado en parámetros del suelo
+    function calculateYMax() {
+        const frictionRad = frictionAngle * Math.PI / 180;
+        const maxShear = cohesion + normalStress * Math.tan(frictionRad);
+        // Devolver el mayor entre el cálculo y un mínimo de 100
+        return Math.max(maxShear * 1.5, 100);
+    }
     
     // Actualizar valores de los controles
     function updateControlValues() {
@@ -62,7 +70,6 @@ document.addEventListener('DOMContentLoaded', function() {
     soilTypeSelect.addEventListener('change', function() {
         soilType = this.value;
         
-        // Actualizar valores según tipo de suelo
         switch(soilType) {
             case 'sand':
                 cohesion = 0;
@@ -87,6 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updateControlValues();
         drawMachine();
         updateMohrChart();
+        updateYLimit();
     });
     
     cohesionSlider.addEventListener('input', function() {
@@ -94,6 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updateControlValues();
         drawMachine();
         updateMohrChart();
+        updateYLimit();
     });
     
     frictionSlider.addEventListener('input', function() {
@@ -101,12 +110,14 @@ document.addEventListener('DOMContentLoaded', function() {
         updateControlValues();
         drawMachine();
         updateMohrChart();
+        updateYLimit();
     });
     
     normalStressSlider.addEventListener('input', function() {
         normalStress = parseInt(this.value);
         updateControlValues();
         drawMachine();
+        updateYLimit();
     });
     
     saturationSelect.addEventListener('change', function() {
@@ -118,6 +129,15 @@ document.addEventListener('DOMContentLoaded', function() {
         speed = parseFloat(this.value);
         updateControlValues();
     });
+    
+    // Actualizar límite Y
+    function updateYLimit() {
+        chartLimits.yMax = calculateYMax();
+        if (window.shearChart) {
+            window.shearChart.options.scales.y.max = chartLimits.yMax;
+            window.shearChart.update('none');
+        }
+    }
     
     // Función para dibujar la máquina
     function drawMachine() {
@@ -137,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
         ctx.fillStyle = '#95a5a6';
         ctx.fillRect(boxX, boxY + boxHeight/2, boxWidth, boxHeight/2);
         
-        // Mitad superior (móvil - según desplazamiento)
+        // Mitad superior (móvil)
         const displacementPixels = (displacement / maxDisplacement) * 100;
         ctx.fillStyle = '#7f8c8d';
         ctx.fillRect(boxX + displacementPixels, boxY, boxWidth, boxHeight/2);
@@ -225,7 +245,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function drawForces(x, y, width, height, displacement) {
-        // Fuerza normal (vertical)
+        // Fuerza normal
         ctx.strokeStyle = '#3498db';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -241,12 +261,11 @@ document.addEventListener('DOMContentLoaded', function() {
         ctx.fillStyle = '#3498db';
         ctx.fill();
         
-        // Texto
         ctx.fillStyle = '#3498db';
         ctx.font = '12px Arial';
         ctx.fillText('σ = ' + normalStress + ' kPa', x + width/2 + displacement - 30, y - 40);
         
-        // Fuerza de corte (horizontal)
+        // Fuerza de corte
         ctx.strokeStyle = '#e74c3c';
         ctx.beginPath();
         ctx.moveTo(x + width + 30, y + height/2);
@@ -261,23 +280,19 @@ document.addEventListener('DOMContentLoaded', function() {
         ctx.fillStyle = '#e74c3c';
         ctx.fill();
         
-        // Calcular esfuerzo de corte
         const shearStress = calculateShearStress();
         ctx.fillStyle = '#e74c3c';
         ctx.fillText('τ = ' + shearStress.toFixed(2) + ' kPa', x + width + 35, y + height/2 - 10);
     }
     
     function calculateShearStress() {
-        // Fórmula simplificada de Mohr-Coulomb
         const frictionRad = frictionAngle * Math.PI / 180;
         let strength = cohesion + normalStress * Math.tan(frictionRad);
         
-        // Reducción por saturación
         if (saturation === 'saturated') {
             strength *= 0.7;
         }
         
-        // Ajustar según desplazamiento
         const peakDisplacement = soilType === 'clay' ? 4 : 2;
         if (displacement <= peakDisplacement) {
             return strength * (displacement / peakDisplacement);
@@ -290,7 +305,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function animate() {
         if (!isRunning) return;
         
-        // Incrementar desplazamiento
         displacement += speed / 60;
         
         if (displacement >= maxDisplacement) {
@@ -298,13 +312,9 @@ document.addEventListener('DOMContentLoaded', function() {
             displacement = maxDisplacement;
         }
         
-        // Actualizar visualización
         drawMachine();
-        
-        // Actualizar resultados
         updateResults();
         
-        // Continuar animación
         if (isRunning) {
             animationId = requestAnimationFrame(animate);
         }
@@ -313,46 +323,38 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateResults() {
         const shearStress = calculateShearStress();
         
-        // Actualizar valores en la interfaz
         document.getElementById('shearStrength').textContent = shearStress.toFixed(2);
         document.getElementById('horizontalDeformation').textContent = displacement.toFixed(2);
         document.getElementById('verticalDeformation').textContent = (displacement * 0.05).toFixed(3);
         document.getElementById('shearForce').textContent = (shearStress * 1000).toFixed(0);
         
-        // Actualizar gráficos
         updateChart(displacement, shearStress);
     }
     
-    // FUNCIÓN CORREGIDA: Actualizar gráfico principal CON LÍMITES FIJOS
+    // Función para actualizar gráfico principal - CON LÍMITES ESTRICTOS
     function updateChart(currentDisplacement, currentStress) {
         if (!window.shearChart) return;
         
         try {
-            // Agregar nuevo punto
             chartData.labels.push(currentDisplacement.toFixed(2));
             chartData.values.push(currentStress);
             
-            // LIMITAR a 50 puntos como máximo
+            // Limitar a 50 puntos
             if (chartData.labels.length > 50) {
                 chartData.labels.shift();
                 chartData.values.shift();
             }
             
-            // Actualizar el gráfico
             window.shearChart.data.labels = chartData.labels;
             window.shearChart.data.datasets[0].data = chartData.values;
             
-            // IMPORTANTE: Ajustar límites dinámicos del eje X
-            // La gráfica se moverá hacia la derecha (adelante) pero no cambiará de escala
-            const currentMaxX = Math.max(12, currentDisplacement + 2);
-            window.shearChart.options.scales.x.max = currentMaxX;
+            // Ajustar límite X dinámico
+            window.shearChart.options.scales.x.max = Math.max(chartLimits.xMax, currentDisplacement + 2);
             
-            // IMPORTANTE: Mantener límites fijos en el eje Y
-            // Esto evita que la gráfica se mueva hacia arriba/abajo
-            window.shearChart.options.scales.y.min = chartLimits.yMin;
-            window.shearChart.options.scales.y.max = chartLimits.yMax;
+            // FORZAR que no haya ajuste automático en los ejes
+            window.shearChart.options.scales.x.ticks.display = true;
+            window.shearChart.options.scales.y.ticks.display = true;
             
-            // Actualizar solo si hay cambios
             window.shearChart.update('none');
             
         } catch (error) {
@@ -368,8 +370,6 @@ document.addEventListener('DOMContentLoaded', function() {
         startBtn.disabled = true;
         pauseBtn.disabled = false;
         startBtn.innerHTML = '<i class="fas fa-play"></i> Ejecutando...';
-        
-        // Iniciar animación
         animate();
     }
     
@@ -408,12 +408,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         isRunning = false;
         displacement = 0;
-        
-        // Reiniciar datos del gráfico
-        chartData = {
-            labels: [],
-            values: []
-        };
+        chartData = { labels: [], values: [] };
         
         startBtn.disabled = false;
         pauseBtn.disabled = true;
@@ -424,7 +419,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.shearChart) {
             window.shearChart.data.labels = [];
             window.shearChart.data.datasets[0].data = [];
-            // Restaurar límites iniciales
             window.shearChart.options.scales.x.max = chartLimits.xMax;
             window.shearChart.update();
         }
@@ -444,7 +438,7 @@ document.addEventListener('DOMContentLoaded', function() {
     pauseBtn.addEventListener('click', pauseSimulation);
     resetBtn.addEventListener('click', resetSimulation);
     
-    // Inicializar gráficos - VERSIÓN CORREGIDA CON LÍMITES FIJOS
+    // Inicializar gráficos - CONFIGURACIÓN ESTRICTA
     function initCharts() {
         const chartCanvas = document.getElementById('chartCanvas');
         const mohrCanvas = document.getElementById('mohrCanvas');
@@ -454,7 +448,10 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Gráfico de esfuerzo-deformación - CONFIGURACIÓN CORREGIDA CON LÍMITES FIJOS
+        // Calcular límite Y inicial
+        chartLimits.yMax = calculateYMax();
+        
+        // Gráfico de esfuerzo-deformación - CONFIGURACIÓN ESTRICTA
         const chartCtx = chartCanvas.getContext('2d');
         window.shearChart = new Chart(chartCtx, {
             type: 'line',
@@ -463,13 +460,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: 'Esfuerzo de Corte (kPa)',
                     data: [],
-                    borderColor: '#2c3e50',
-                    backgroundColor: 'rgba(44, 62, 80, 0.1)',
+                    borderColor: '#005792',
+                    backgroundColor: 'rgba(0, 87, 146, 0.1)',
                     tension: 0.3,
                     fill: true,
-                    borderWidth: 2,
+                    borderWidth: 3,
                     pointRadius: 2,
-                    pointHoverRadius: 4
+                    pointHoverRadius: 5
                 }]
             },
             options: {
@@ -485,40 +482,48 @@ document.addEventListener('DOMContentLoaded', function() {
                             display: true,
                             text: 'Desplazamiento Horizontal (mm)',
                             color: '#2c3e50',
-                            font: {
-                                weight: 'bold'
-                            }
+                            font: { weight: 'bold', size: 14 }
                         },
                         beginAtZero: true,
                         min: chartLimits.xMin,
                         max: chartLimits.xMax,
                         ticks: {
                             stepSize: 1,
-                            color: '#2c3e50'
+                            color: '#2c3e50',
+                            font: { size: 12 }
                         },
                         grid: {
-                            color: 'rgba(0, 0, 0, 0.1)'
-                        }
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            drawBorder: true
+                        },
+                        // IMPORTANTE: Deshabilitar ajuste automático
+                        grace: '0%',
+                        suggestedMin: chartLimits.xMin,
+                        suggestedMax: chartLimits.xMax
                     },
                     y: {
                         title: {
                             display: true,
                             text: 'Esfuerzo de Corte (kPa)',
                             color: '#2c3e50',
-                            font: {
-                                weight: 'bold'
-                            }
+                            font: { weight: 'bold', size: 14 }
                         },
                         beginAtZero: true,
-                        min: chartLimits.yMin,     // LÍMITE FIJO INFERIOR
-                        max: chartLimits.yMax,     // LÍMITE FIJO SUPERIOR
+                        min: chartLimits.yMin,
+                        max: chartLimits.yMax,
                         ticks: {
-                            stepSize: 50,          // ESCALA FIJA
-                            color: '#2c3e50'
+                            stepSize: 50,
+                            color: '#2c3e50',
+                            font: { size: 12 }
                         },
                         grid: {
-                            color: 'rgba(0, 0, 0, 0.1)'
-                        }
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            drawBorder: true
+                        },
+                        // IMPORTANTE: Deshabilitar ajuste automático
+                        grace: '0%',
+                        suggestedMin: chartLimits.yMin,
+                        suggestedMax: chartLimits.yMax
                     }
                 },
                 plugins: {
@@ -527,15 +532,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         position: 'top',
                         labels: {
                             color: '#2c3e50',
-                            font: {
-                                weight: 'bold'
-                            }
+                            font: { weight: 'bold', size: 13 }
                         }
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(44, 62, 80, 0.9)',
+                        backgroundColor: 'rgba(44, 62, 80, 0.95)',
                         titleColor: '#ffffff',
-                        bodyColor: '#ffffff'
+                        bodyColor: '#ffffff',
+                        titleFont: { size: 13 },
+                        bodyFont: { size: 13 }
                     }
                 }
             }
@@ -553,7 +558,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     backgroundColor: 'rgba(231, 76, 60, 0.1)',
                     showLine: true,
                     fill: false,
-                    borderWidth: 2,
+                    borderWidth: 3,
                     pointRadius: 0
                 }]
             },
@@ -566,17 +571,16 @@ document.addEventListener('DOMContentLoaded', function() {
                             display: true,
                             text: 'Esfuerzo Normal (kPa)',
                             color: '#2c3e50',
-                            font: {
-                                weight: 'bold'
-                            }
+                            font: { weight: 'bold', size: 14 }
                         },
                         min: 0,
                         max: 450,
                         ticks: {
-                            color: '#2c3e50'
+                            color: '#2c3e50',
+                            font: { size: 12 }
                         },
                         grid: {
-                            color: 'rgba(0, 0, 0, 0.1)'
+                            color: 'rgba(0, 0, 0, 0.05)'
                         }
                     },
                     y: {
@@ -584,17 +588,16 @@ document.addEventListener('DOMContentLoaded', function() {
                             display: true,
                             text: 'Resistencia al Corte (kPa)',
                             color: '#2c3e50',
-                            font: {
-                                weight: 'bold'
-                            }
+                            font: { weight: 'bold', size: 14 }
                         },
                         min: 0,
                         max: 300,
                         ticks: {
-                            color: '#2c3e50'
+                            color: '#2c3e50',
+                            font: { size: 12 }
                         },
                         grid: {
-                            color: 'rgba(0, 0, 0, 0.1)'
+                            color: 'rgba(0, 0, 0, 0.05)'
                         }
                     }
                 },
@@ -604,16 +607,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         position: 'top',
                         labels: {
                             color: '#2c3e50',
-                            font: {
-                                weight: 'bold'
-                            }
+                            font: { weight: 'bold', size: 13 }
                         }
                     }
                 }
             }
         });
         
-        // Actualizar gráfico de Mohr con la línea inicial
         updateMohrChart();
     }
     
