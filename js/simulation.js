@@ -1,120 +1,288 @@
-// simulation.js - Versión SUPER SIMPLIFICADA Y FUNCIONAL
+// simulation.js - Simulación de la máquina de corte directo - VERSIÓN CORREGIDA
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Cargando simulación simplificada...');
+    console.log('Inicializando simulación...');
     
-    // Elementos básicos
+    // Elementos del DOM
     const canvas = document.getElementById('simulationCanvas');
     const startBtn = document.getElementById('startBtn');
     const pauseBtn = document.getElementById('pauseBtn');
     const resetBtn = document.getElementById('resetBtn');
+    const soilTypeSelect = document.getElementById('soilType');
+    const cohesionSlider = document.getElementById('cohesion');
+    const frictionSlider = document.getElementById('friction');
+    const normalStressSlider = document.getElementById('normalStress');
+    const saturationSelect = document.getElementById('saturation');
+    const speedSlider = document.getElementById('speed');
     
-    if (!canvas || !startBtn) return;
+    // Verificar que todos los elementos existan
+    if (!canvas || !startBtn) {
+        console.log('No es la página de simulación');
+        return;
+    }
     
-    // Variables básicas
+    const ctx = canvas.getContext('2d');
+    
+    // Variables de simulación
     let isRunning = false;
     let animationId = null;
     let displacement = 0;
     const maxDisplacement = 10;
     
-    // Parámetros fijos para simplificar
+    // Parámetros del suelo
     let soilType = 'sand';
     let cohesion = 0;
     let frictionAngle = 35;
     let normalStress = 100;
-    let speed = 1.0;
+    let saturation = 'dry';
+    let speed = 1.2;
     
-    // Datos del gráfico - LIMITADOS A 20 PUNTOS
+    // Datos para gráficos - ARRAYS VACÍOS
     let chartData = {
-        labels: Array.from({length: 20}, (_, i) => i * 0.5), // 0, 0.5, 1.0, ... 9.5
-        values: Array(20).fill(0)
+        labels: [],      // Desplazamientos
+        values: []       // Esfuerzos de corte
     };
     
-    // Dibujar máquina estática
+    // Actualizar valores de los controles
+    function updateControlValues() {
+        document.getElementById('cohesionValue').textContent = cohesion + ' kPa';
+        document.getElementById('frictionValue').textContent = frictionAngle + '°';
+        document.getElementById('normalStressValue').textContent = normalStress + ' kPa';
+        document.getElementById('speedValue').textContent = speed + ' mm/min';
+    }
+    
+    // Configurar event listeners para controles
+    soilTypeSelect.addEventListener('change', function() {
+        soilType = this.value;
+        
+        // Actualizar valores según tipo de suelo
+        switch(soilType) {
+            case 'sand':
+                cohesion = 0;
+                frictionAngle = 35;
+                break;
+            case 'clay':
+                cohesion = 25;
+                frictionAngle = 20;
+                break;
+            case 'silt':
+                cohesion = 10;
+                frictionAngle = 28;
+                break;
+            case 'clayeySand':
+                cohesion = 15;
+                frictionAngle = 30;
+                break;
+        }
+        
+        cohesionSlider.value = cohesion;
+        frictionSlider.value = frictionAngle;
+        updateControlValues();
+        drawMachine();
+        updateMohrChart();
+    });
+    
+    cohesionSlider.addEventListener('input', function() {
+        cohesion = parseInt(this.value);
+        updateControlValues();
+        drawMachine();
+        updateMohrChart();
+    });
+    
+    frictionSlider.addEventListener('input', function() {
+        frictionAngle = parseInt(this.value);
+        updateControlValues();
+        drawMachine();
+        updateMohrChart();
+    });
+    
+    normalStressSlider.addEventListener('input', function() {
+        normalStress = parseInt(this.value);
+        updateControlValues();
+        drawMachine();
+    });
+    
+    saturationSelect.addEventListener('change', function() {
+        saturation = this.value;
+        drawMachine();
+    });
+    
+    speedSlider.addEventListener('input', function() {
+        speed = parseFloat(this.value);
+        updateControlValues();
+    });
+    
+    // Función para dibujar la máquina
     function drawMachine() {
-        const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Fondo
+        // Dibujar fondo
         ctx.fillStyle = '#f8f9fa';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Caja de corte
+        // Dibujar la caja de corte
         const boxWidth = 400;
         const boxHeight = 200;
         const boxX = (canvas.width - boxWidth) / 2;
         const boxY = 150;
         
-        // Mitad inferior
+        // Mitad inferior (fija)
         ctx.fillStyle = '#95a5a6';
         ctx.fillRect(boxX, boxY + boxHeight/2, boxWidth, boxHeight/2);
         
-        // Mitad superior (se mueve)
+        // Mitad superior (móvil - según desplazamiento)
         const displacementPixels = (displacement / maxDisplacement) * 100;
         ctx.fillStyle = '#7f8c8d';
         ctx.fillRect(boxX + displacementPixels, boxY, boxWidth, boxHeight/2);
         
-        // Suelo
-        ctx.fillStyle = '#F4A460';
+        // Muestra de suelo
+        ctx.fillStyle = getSoilColor();
         const soilWidth = boxWidth * 0.9;
         const soilHeight = boxHeight * 0.8;
         const soilX = boxX + (boxWidth - soilWidth)/2;
         const soilY = boxY + (boxHeight - soilHeight)/2;
         ctx.fillRect(soilX + displacementPixels * 0.8, soilY, soilWidth, soilHeight);
         
+        // Línea de separación
+        ctx.strokeStyle = '#34495e';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(boxX, boxY + boxHeight/2);
+        ctx.lineTo(boxX + boxWidth, boxY + boxHeight/2);
+        ctx.stroke();
+        
+        // Tornillos
+        drawScrews(boxX + displacementPixels, boxY, boxWidth, boxHeight);
+        
+        // Sistema de pesos
+        drawWeightSystem(boxX, boxY, boxWidth);
+        
+        // Fuerzas
+        drawForces(boxX, boxY, boxWidth, boxHeight, displacementPixels);
+        
         // Información
         ctx.fillStyle = '#2c3e50';
         ctx.font = '16px Arial';
         ctx.fillText('Máquina de Corte Directo HM-5750', 20, 30);
         ctx.font = '14px Arial';
-        ctx.fillText(`Desplazamiento: ${displacement.toFixed(2)} mm`, 20, 55);
-        ctx.fillText(`Esfuerzo Normal: ${normalStress} kPa`, 20, 80);
+        ctx.fillText(Tipo: ${soilType} | Cohesión: ${cohesion} kPa | φ: ${frictionAngle}°, 20, 55);
+        ctx.fillText(σ: ${normalStress} kPa | Estado: ${saturation === 'saturated' ? 'Saturado' : 'Seco'}, 20, 80);
+        ctx.fillText(Desplazamiento: ${displacement.toFixed(2)} mm, 20, 105);
     }
     
-    // Calcular esfuerzo de corte (fórmula simple)
+    function getSoilColor() {
+        switch(soilType) {
+            case 'sand': return saturation === 'saturated' ? '#D2B48C' : '#F4A460';
+            case 'clay': return saturation === 'saturated' ? '#8B4513' : '#A0522D';
+            case 'silt': return saturation === 'saturated' ? '#BC8F8F' : '#DEB887';
+            case 'clayeySand': return saturation === 'saturated' ? '#CD853F' : '#D2691E';
+            default: return '#F4A460';
+        }
+    }
+    
+    function drawScrews(x, y, width, height) {
+        ctx.fillStyle = '#e74c3c';
+        const screwPositions = [
+            {x: x + 30, y: y + height/2 - 15},
+            {x: x + width - 30, y: y + height/2 - 15},
+            {x: x + 30, y: y + height/2 + 15},
+            {x: x + width - 30, y: y + height/2 + 15}
+        ];
+        
+        screwPositions.forEach(pos => {
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, 6, 0, Math.PI * 2);
+            ctx.fill();
+        });
+    }
+    
+    function drawWeightSystem(x, y, width) {
+        const systemX = x - 100;
+        const systemY = y + 50;
+        const systemWidth = 60;
+        const systemHeight = 120;
+        
+        // Poste
+        ctx.fillStyle = '#95a5a6';
+        ctx.fillRect(systemX + systemWidth/2 - 5, systemY, 10, systemHeight);
+        
+        // Base
+        ctx.fillRect(systemX, systemY + systemHeight - 10, systemWidth, 10);
+        
+        // Pesos
+        const weightCount = Math.min(Math.floor(normalStress / 50), 5);
+        ctx.fillStyle = '#2c3e50';
+        for (let i = 0; i < weightCount; i++) {
+            ctx.fillRect(systemX + 10, systemY + 20 + i * 20, systemWidth - 20, 15);
+        }
+    }
+    
+    function drawForces(x, y, width, height, displacement) {
+        // Fuerza normal (vertical)
+        ctx.strokeStyle = '#3498db';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x + width/2 + displacement, y - 30);
+        ctx.lineTo(x + width/2 + displacement, y);
+        ctx.stroke();
+        
+        // Flecha
+        ctx.beginPath();
+        ctx.moveTo(x + width/2 + displacement - 5, y - 20);
+        ctx.lineTo(x + width/2 + displacement, y - 30);
+        ctx.lineTo(x + width/2 + displacement + 5, y - 20);
+        ctx.fillStyle = '#3498db';
+        ctx.fill();
+        
+        // Texto
+        ctx.fillStyle = '#3498db';
+        ctx.font = '12px Arial';
+        ctx.fillText('σ = ' + normalStress + ' kPa', x + width/2 + displacement - 30, y - 40);
+        
+        // Fuerza de corte (horizontal)
+        ctx.strokeStyle = '#e74c3c';
+        ctx.beginPath();
+        ctx.moveTo(x + width + 30, y + height/2);
+        ctx.lineTo(x + width + 10, y + height/2);
+        ctx.stroke();
+        
+        // Flecha
+        ctx.beginPath();
+        ctx.moveTo(x + width + 20, y + height/2 - 5);
+        ctx.lineTo(x + width + 30, y + height/2);
+        ctx.lineTo(x + width + 20, y + height/2 + 5);
+        ctx.fillStyle = '#e74c3c';
+        ctx.fill();
+        
+        // Calcular esfuerzo de corte
+        const shearStress = calculateShearStress();
+        ctx.fillStyle = '#e74c3c';
+        ctx.fillText('τ = ' + shearStress.toFixed(2) + ' kPa', x + width + 35, y + height/2 - 10);
+    }
+    
     function calculateShearStress() {
+        // Fórmula simplificada de Mohr-Coulomb
         const frictionRad = frictionAngle * Math.PI / 180;
         let strength = cohesion + normalStress * Math.tan(frictionRad);
         
-        // Curva típica de esfuerzo-deformación
-        const peakDisplacement = 2.5;
+        // Reducción por saturación
+        if (saturation === 'saturated') {
+            strength *= 0.7;
+        }
+        
+        // Ajustar según desplazamiento
+        const peakDisplacement = soilType === 'clay' ? 4 : 2;
         if (displacement <= peakDisplacement) {
             return strength * (displacement / peakDisplacement);
         } else {
-            return strength * (1 - 0.15 * (displacement - peakDisplacement));
+            return strength * (1 - 0.1 * (displacement - peakDisplacement));
         }
-    }
-    
-    // Actualizar gráfico de forma SIMPLE
-    function updateChart() {
-        if (!window.shearChart) return;
-        
-        // Calcular esfuerzo actual
-        const currentStress = calculateShearStress();
-        
-        // Encontrar el índice correspondiente al desplazamiento actual
-        const index = Math.min(Math.floor(displacement / 0.5), 19);
-        
-        // Actualizar solo el valor en ese índice
-        if (index >= 0 && index < 20) {
-            chartData.values[index] = currentStress;
-        }
-        
-        // Suavizar la curva (rellenar valores entre puntos)
-        for (let i = 0; i < 20; i++) {
-            if (chartData.values[i] === 0 && i > 0) {
-                chartData.values[i] = chartData.values[i-1] * 0.95;
-            }
-        }
-        
-        // Actualizar gráfico
-        window.shearChart.data.datasets[0].data = chartData.values;
-        window.shearChart.update('none');
     }
     
     // Función de animación
     function animate() {
         if (!isRunning) return;
         
+        // Incrementar desplazamiento
         displacement += speed / 60;
         
         if (displacement >= maxDisplacement) {
@@ -122,10 +290,13 @@ document.addEventListener('DOMContentLoaded', function() {
             displacement = maxDisplacement;
         }
         
+        // Actualizar visualización
         drawMachine();
-        updateResults();
-        updateChart();
         
+        // Actualizar resultados
+        updateResults();
+        
+        // Continuar animación
         if (isRunning) {
             animationId = requestAnimationFrame(animate);
         }
@@ -134,132 +305,263 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateResults() {
         const shearStress = calculateShearStress();
         
+        // Actualizar valores en la interfaz
         document.getElementById('shearStrength').textContent = shearStress.toFixed(2);
         document.getElementById('horizontalDeformation').textContent = displacement.toFixed(2);
         document.getElementById('verticalDeformation').textContent = (displacement * 0.05).toFixed(3);
         document.getElementById('shearForce').textContent = (shearStress * 1000).toFixed(0);
+        
+        // Actualizar gráficos - CORREGIDO
+        updateChart(displacement, shearStress);
     }
     
-    // Controles básicos
-    startBtn.addEventListener('click', function() {
+    // FUNCIÓN CORREGIDA: Actualizar gráfico principal
+    function updateChart(currentDisplacement, currentStress) {
+        if (!window.shearChart) return;
+        
+        try {
+            // Agregar nuevo punto
+            chartData.labels.push(currentDisplacement.toFixed(2));
+            chartData.values.push(currentStress);
+            
+            // LIMITAR a 50 puntos como máximo
+            if (chartData.labels.length > 50) {
+                chartData.labels.shift(); // Quitar el más viejo
+                chartData.values.shift(); // Quitar el más viejo
+            }
+            
+            // Actualizar el gráfico - ESTA ES LA CLAVE
+            window.shearChart.data.labels = chartData.labels;
+            window.shearChart.data.datasets[0].data = chartData.values;
+            
+            // Configurar límites del eje X
+            window.shearChart.options.scales.x.max = Math.max(12, currentDisplacement + 2);
+            
+            // Actualizar solo si hay cambios
+            window.shearChart.update('none');
+            
+        } catch (error) {
+            console.error('Error en updateChart:', error);
+        }
+    }
+    
+    // Control de la simulación
+    function startSimulation() {
         if (isRunning) return;
+        
         isRunning = true;
         startBtn.disabled = true;
         pauseBtn.disabled = false;
+        startBtn.innerHTML = '<i class="fas fa-play"></i> Ejecutando...';
+        
+        // Iniciar animación
         animate();
-    });
+    }
     
-    pauseBtn.addEventListener('click', function() {
+    function pauseSimulation() {
         isRunning = false;
         startBtn.disabled = false;
         pauseBtn.disabled = true;
+        startBtn.innerHTML = '<i class="fas fa-play"></i> Reanudar';
+        
         if (animationId) {
             cancelAnimationFrame(animationId);
             animationId = null;
         }
-    });
+    }
     
-    resetBtn.addEventListener('click', function() {
+    function stopSimulation() {
+        isRunning = false;
+        startBtn.disabled = true;
+        pauseBtn.disabled = true;
+        startBtn.innerHTML = '<i class="fas fa-check"></i> Completado';
+        
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+    }
+    
+    // Función para reiniciar simulación
+    function resetSimulation() {
+        console.log('Reiniciando ensayo...');
+        
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+        
         isRunning = false;
         displacement = 0;
         
         // Reiniciar datos del gráfico
-        chartData.values = Array(20).fill(0);
+        chartData = {
+            labels: [],
+            values: []
+        };
         
         startBtn.disabled = false;
         pauseBtn.disabled = true;
+        resetBtn.disabled = false;
+        startBtn.innerHTML = '<i class="fas fa-play"></i> Iniciar Ensayo';
         
+        // Reiniciar gráficos
         if (window.shearChart) {
-            window.shearChart.data.datasets[0].data = chartData.values;
+            window.shearChart.data.labels = [];
+            window.shearChart.data.datasets[0].data = [];
+            window.shearChart.options.scales.x.max = 12;
             window.shearChart.update();
         }
         
+        // Reiniciar resultados
         document.getElementById('shearStrength').textContent = '-';
         document.getElementById('horizontalDeformation').textContent = '-';
         document.getElementById('verticalDeformation').textContent = '-';
         document.getElementById('shearForce').textContent = '-';
         
         drawMachine();
-    });
+        console.log('Ensayo reiniciado');
+    }
     
-    // Inicializar gráficos SIMPLES
-    function initSimpleCharts() {
+    // Configurar event listeners para botones
+    startBtn.addEventListener('click', startSimulation);
+    pauseBtn.addEventListener('click', pauseSimulation);
+    resetBtn.addEventListener('click', resetSimulation);
+    
+    // Inicializar gráficos - VERSIÓN SIMPLIFICADA
+    function initCharts() {
         const chartCanvas = document.getElementById('chartCanvas');
-        if (!chartCanvas) return;
+        const mohrCanvas = document.getElementById('mohrCanvas');
         
-        const ctx = chartCanvas.getContext('2d');
-        window.shearChart = new Chart(ctx, {
+        if (!chartCanvas || !mohrCanvas) {
+            console.error('No se encontraron los canvas de gráficos');
+            return;
+        }
+        
+        // Gráfico de esfuerzo-deformación - CONFIGURACIÓN CORREGIDA
+        const chartCtx = chartCanvas.getContext('2d');
+        window.shearChart = new Chart(chartCtx, {
             type: 'line',
             data: {
-                labels: chartData.labels,
+                labels: [], // Inicialmente vacío
                 datasets: [{
                     label: 'Esfuerzo de Corte (kPa)',
-                    data: chartData.values,
-                    borderColor: '#005792',
-                    backgroundColor: 'rgba(0, 87, 146, 0.1)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4,
+                    data: [], // Inicialmente vacío
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                    tension: 0.1,
+                    fill: false,
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointHoverRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 0 // Sin animación para mejor rendimiento
+                },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'Desplazamiento Horizontal (mm)'
+                        },
+                        beginAtZero: true,
+                        min: 0,
+                        max: 12,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Esfuerzo de Corte (kPa)'
+                        },
+                        beginAtZero: true,
+                        suggestedMax: 400
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                }
+            }
+        });
+        
+        // Gráfico de Mohr-Coulomb - SOLO LÍNEA INICIAL
+        const mohrCtx = mohrCanvas.getContext('2d');
+        window.mohrChart = new Chart(mohrCtx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Envolvente de Falla',
+                    data: [],
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    showLine: true,
+                    fill: false,
+                    borderWidth: 2,
                     pointRadius: 0
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                animation: false,
                 scales: {
                     x: {
                         title: {
                             display: true,
-                            text: 'Desplazamiento (mm)'
+                            text: 'Esfuerzo Normal (kPa)'
                         },
                         min: 0,
-                        max: 10,
-                        ticks: {
-                            stepSize: 2
-                        }
+                        max: 450
                     },
                     y: {
                         title: {
                             display: true,
-                            text: 'Esfuerzo (kPa)'
+                            text: 'Resistencia al Corte (kPa)'
                         },
                         min: 0,
-                        max: 200, // LÍMITE FIJO
-                        ticks: {
-                            stepSize: 50
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
+                        max: 300
                     }
                 }
             }
         });
+        
+        // Actualizar gráfico de Mohr con la línea inicial
+        updateMohrChart();
+    }
+    
+    function updateMohrChart() {
+        if (!window.mohrChart) return;
+        
+        try {
+            const frictionRad = frictionAngle * Math.PI / 180;
+            const data = [
+                {x: 0, y: cohesion},
+                {x: 100, y: cohesion + 100 * Math.tan(frictionRad)},
+                {x: 200, y: cohesion + 200 * Math.tan(frictionRad)},
+                {x: 300, y: cohesion + 300 * Math.tan(frictionRad)},
+                {x: 400, y: cohesion + 400 * Math.tan(frictionRad)}
+            ];
+            
+            window.mohrChart.data.datasets[0].data = data;
+            window.mohrChart.update();
+        } catch (error) {
+            console.error('Error en updateMohrChart:', error);
+        }
     }
     
     // Inicializar
+    updateControlValues();
+    initCharts();
     drawMachine();
-    initSimpleCharts();
     
-    // Ocultar controles complejos que no usaremos
-    document.querySelectorAll('.control-group').forEach(el => {
-        el.style.display = 'none';
-    });
-    
-    // Mostrar mensaje simplificado
-    const controlsContainer = document.querySelector('.controls');
-    if (controlsContainer) {
-        controlsContainer.innerHTML = `
-            <div style="text-align: center; padding: 20px; background: white; border-radius: 10px; margin: 20px 0;">
-                <h4 style="color: #005792;">Simulación Simplificada</h4>
-                <p>Esta versión muestra el comportamiento básico de la máquina de corte directo.</p>
-                <p>Usa los botones para controlar la simulación.</p>
-            </div>
-        `;
-    }
-    
-    console.log('Simulación simplificada cargada');
+    console.log('Simulación inicializada correctamente');
 });
