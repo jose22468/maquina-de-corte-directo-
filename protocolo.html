@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Protocolo - Humboldt HM-5750</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles3.css">
 </head>
-
 <body>
     <header>
         <div class="logo-container">
@@ -25,12 +24,13 @@
 
     <nav>
         <ul>
+            <li><a href="index.html"><i class="fas fa-home"></i> Inicio</a></li>
             <li><a href="la-maquina.html"><i class="fas fa-cogs"></i> La Máquina</a></li>
             <li><a href="partes.html"><i class="fas fa-toolbox"></i> Partes</a></li>
-            <li><a href="protocolo.html"><i class="fas fa-clipboard-list"></i> Protocolo</a></li>
+            <li><a href="protocolo.html" class="active"><i class="fas fa-clipboard-list"></i> Protocolo</a></li>
             <li><a href="preparacion.html"><i class="fas fa-vial"></i> Preparación</a></li>
             <li><a href="simulacion.html"><i class="fas fa-play-circle"></i> Simulación</a></li>
-            <li><a href="resultados.html" class="active"><i class="fas fa-chart-line"></i> Resultados</a></li>
+            <li><a href="resultados.html"><i class="fas fa-chart-line"></i> Resultados</a></li>
         </ul>
     </nav>
 
@@ -144,241 +144,7 @@
         </div>
     </footer>
 
-    <script>
-        // Datos de todos los pasos
-        const stepsData = {
-            1: {
-                icon: "fa-tools",
-                title: "Preparación de la Máquina",
-                content: `
-                    <p class="step-paragraph">
-                        Antes de comenzar el ensayo, es fundamental verificar que la máquina Humboldt HM-5750 esté correctamente nivelada y estable. Utilice un nivel de burbuja para comprobar la horizontalidad de la base. Asegúrese de que todos los componentes móviles se desplacen suavemente sin obstrucciones.
-                    </p>
-                    <p class="step-paragraph">
-                        Verifique que todos los indicadores de lectura (dial gauges) estén en posición cero. Si es necesario, ajuste los indicadores girando suavemente la corona exterior hasta que la aguja coincida con el cero.
-                    </p>
-                    <div class="tip-box">
-                        <h4><i class="fas fa-lightbulb"></i> Consejo Importante</h4>
-                        <p>Una máquina mal nivelada puede generar resultados incorrectos y comprometer la validez del ensayo completo.</p>
-                    </div>
-                `
-            },
-            2: {
-                icon: "fa-box-open",
-                title: "Montaje de la Caja de Corte",
-                content: `
-                    <p class="step-paragraph">
-                        Ensamble cuidadosamente la caja de corte, que consta de dos mitades: superior e inferior. Coloque las placas porosas en la base para permitir el drenaje del agua durante ensayos saturados. Sobre estas placas, posicione la placa de grid que servirá de apoyo a la muestra.
-                    </p>
-                    <p class="step-paragraph">
-                        Una vez colocadas las placas, inserte los tornillos de sujeción negros en los orificios correspondientes y apriételos firmemente para mantener unidas ambas mitades de la caja durante la preparación de la muestra.
-                    </p>
-                    <div class="tip-box">
-                        <h4><i class="fas fa-lightbulb"></i> Nota Técnica</h4>
-                        <p>Las placas porosas deben estar limpias y saturadas previamente si se realizará un ensayo con muestra saturada.</p>
-                    </div>
-                `
-            },
-            3: {
-                icon: "fa-mountain",
-                title: "Preparación de la Muestra",
-                content: `
-                    <p class="step-paragraph">
-                        Prepare la muestra de suelo siguiendo las especificaciones del estándar ASTM D3080. La muestra debe tener un diámetro y altura específicos según el tamaño de la caja de corte utilizada. Para la HM-5750, típicamente se usan muestras de 2.5" x 2.5" (63.5 mm x 63.5 mm).
-                    </p>
-                    <p class="step-paragraph">
-                        Si el suelo es cohesivo, puede tallarse directamente de una muestra inalterada. Si es granular, debe compactarse por capas dentro de la caja de corte. Determine la densidad inicial y el contenido de humedad de la muestra.
-                    </p>
-                    <div class="tip-box">
-                        <h4><i class="fas fa-lightbulb"></i> Consejo Importante</h4>
-                        <p>Registre el peso de la muestra húmeda antes de colocarla en la caja para posteriores cálculos de densidad.</p>
-                    </div>
-                `
-            },
-            4: {
-                icon: "fa-hammer",
-                title: "Compactación de la Muestra",
-                content: `
-                    <p class="step-paragraph">
-                        Para suelos granulares o remoldeados, utilice el dolly/tamper (pisón) para compactar la muestra en capas uniformes. Típicamente se compacta en 3-5 capas, aplicando el mismo número de golpes por capa para asegurar uniformidad.
-                    </p>
-                    <p class="step-paragraph">
-                        La altura final de la muestra debe alcanzar el borde superior de la caja de corte. Enrase cuidadosamente la superficie superior con una espátula o regla metálica para obtener una superficie plana y horizontal.
-                    </p>
-                    <div class="tip-box">
-                        <h4><i class="fas fa-lightbulb"></i> Consejo Importante</h4>
-                        <p>Verifique que la densidad alcanzada sea consistente con la especificada en el plan de ensayo o diseño.</p>
-                    </div>
-                `
-            },
-            5: {
-                icon: "fa-weight-hanging",
-                title: "Aplicación de Carga Normal",
-                content: `
-                    <p class="step-paragraph">
-                        Coloque la placa de carga superior sobre la muestra preparada. Aplique la carga normal utilizando el sistema de pesos muertos. Para ensayos consolidados-drenados (CD), la carga se aplica gradualmente para permitir la consolidación completa.
-                    </p>
-                    <p class="step-paragraph">
-                        Registre la deformación vertical durante la consolidación. La consolidación se considera completa cuando la deformación vertical se estabiliza (generalmente en 24 horas para suelos finos).
-                    </p>
-                    <div class="tip-box">
-                        <h4><i class="fas fa-lightbulb"></i> Nota Técnica</h4>
-                        <p>La carga normal debe seleccionarse según las condiciones de campo que se desean simular.</p>
-                    </div>
-                `
-            },
-            6: {
-                icon: "fa-compress-alt",
-                title: "Inicio del Ensayo de Corte",
-                content: `
-                    <p class="step-paragraph">
-                        Una vez completada la consolidación, retire los tornillos de sujeción que mantienen unidas las dos mitades de la caja de corte. Esto permite que la mitad superior se desplace libremente durante el corte.
-                    </p>
-                    <p class="step-paragraph">
-                        Active el motor de corte a una velocidad constante. Para suelos drenados, use una velocidad lenta (0.5-1.0 mm/min) para permitir la disipación de presión de poro.
-                    </p>
-                    <div class="tip-box">
-                        <h4><i class="fas fa-lightbulb"></i> Consejo Importante</h4>
-                        <p>La velocidad de corte debe seleccionarse según el tipo de suelo y las condiciones de drenaje.</p>
-                    </div>
-                `
-            },
-            7: {
-                icon: "fa-ruler-combined",
-                title: "Monitoreo del Ensayo",
-                content: `
-                    <p class="step-paragraph">
-                        Durante el ensayo, registre continuamente la fuerza de corte y el desplazamiento horizontal. También monitoree la deformación vertical para detectar si el suelo se está dilatando o contrayendo.
-                    </p>
-                    <p class="step-paragraph">
-                        Tome lecturas a intervalos regulares: cada 0.1 mm de desplazamiento al inicio y cada 0.5 mm una vez que la resistencia al corte comience a estabilizarse.
-                    </p>
-                    <div class="tip-box">
-                        <h4><i class="fas fa-lightbulb"></i> Nota Técnica</h4>
-                        <p>El ensayo debe continuar hasta que se alcance la resistencia máxima o un desplazamiento predeterminado (generalmente 10% del diámetro de la muestra).</p>
-                    </div>
-                `
-            },
-            8: {
-                icon: "fa-stop-circle",
-                title: "Finalización del Ensayo",
-                content: `
-                    <p class="step-paragraph">
-                        Detenga el ensayo cuando la fuerza de corte se estabilice o comience a disminuir, indicando que se ha alcanzado la resistencia máxima al corte. Alternativamente, detenga al alcanzar un desplazamiento horizontal del 10% del diámetro de la muestra.
-                    </p>
-                    <p class="step-paragraph">
-                        Apague el motor de corte y retire cuidadosamente los pesos de carga normal. Documente la fuerza de corte final y el desplazamiento total alcanzado.
-                    </p>
-                    <div class="tip-box">
-                        <h4><i class="fas fa-lightbulb"></i> Consejo Importante</h4>
-                        <p>Anote cualquier observación especial sobre el comportamiento de la muestra durante el corte.</p>
-                    </div>
-                `
-            },
-            9: {
-                icon: "fa-vial",
-                title: "Análisis de la Muestra Fallada",
-                content: `
-                    <p class="step-paragraph">
-                        Desmonte cuidadosamente la caja de corte y extraiga la muestra fallada. Fotografíe la superficie de falla para documentar su orientación y características.
-                    </p>
-                    <p class="step-paragraph">
-                        Tome muestras representativas del suelo para determinar el contenido de humedad final. Compare con el contenido de humedad inicial para evaluar cambios durante el ensayo.
-                    </p>
-                    <div class="tip-box">
-                        <h4><i class="fas fa-lightbulb"></i> Nota Técnica</h4>
-                        <p>El contenido de humedad final es crucial para interpretar correctamente los resultados del ensayo.</p>
-                    </div>
-                `
-            },
-            10: {
-                icon: "fa-calculator",
-                title: "Cálculos y Reporte",
-                content: `
-                    <p class="step-paragraph">
-                        Calcule la resistencia al corte no drenada o los parámetros de resistencia efectivos según el tipo de ensayo realizado. Para ensayos CD, determine la cohesión (c) y el ángulo de fricción (φ).
-                    </p>
-                    <p class="step-paragraph">
-                        Prepare un reporte completo que incluya: condiciones iniciales de la muestra, curva esfuerzo-deformación, parámetros de resistencia obtenidos, y observaciones del comportamiento durante el ensayo.
-                    </p>
-                    <div class="tip-box">
-                        <h4><i class="fas fa-lightbulb"></i> Consejo Final</h4>
-                        <p>Verifique que todos los resultados cumplan con los estándares aplicables (ASTM D3080, AASHTO T236, BS 1377.7).</p>
-                    </div>
-                `
-            }
-        };
-
-        let currentStep = 1;
-        const totalSteps = Object.keys(stepsData).length;
-
-        // Elementos del DOM
-        const stepLinks = document.querySelectorAll('.step-link');
-        const prevBtn = document.getElementById('prev-btn');
-        const nextBtn = document.getElementById('next-btn');
-        const currentStepDisplay = document.getElementById('current-step');
-        const stepNumberDisplay = document.getElementById('step-number');
-        const stepIcon = document.getElementById('step-icon');
-        const stepTitleIcon = document.getElementById('step-title-icon');
-        const stepTitleText = document.getElementById('step-title-text');
-        const stepContent = document.getElementById('step-content');
-
-        // Función para actualizar el paso
-        function updateStep(step) {
-            currentStep = step;
-            const stepData = stepsData[step];
-
-            // Actualizar contenido
-            stepNumberDisplay.textContent = step;
-            currentStepDisplay.textContent = step;
-            stepIcon.className = `fas ${stepData.icon}`;
-            stepTitleIcon.className = `fas ${stepData.icon}`;
-            stepTitleText.textContent = stepData.title;
-            stepContent.innerHTML = stepData.content;
-
-            // Actualizar navegación de pasos
-            stepLinks.forEach(link => {
-                link.classList.remove('active');
-                if (parseInt(link.dataset.step) === step) {
-                    link.classList.add('active');
-                }
-            });
-
-            // Actualizar botones de navegación
-            prevBtn.disabled = step === 1;
-            nextBtn.disabled = step === totalSteps;
-
-            // Efecto visual de transición
-            stepContent.style.opacity = '0';
-            setTimeout(() => {
-                stepContent.style.opacity = '1';
-            }, 150);
-        }
-
-        // Event listeners para botones de navegación
-        prevBtn.addEventListener('click', () => {
-            if (currentStep > 1) {
-                updateStep(currentStep - 1);
-            }
-        });
-
-        nextBtn.addEventListener('click', () => {
-            if (currentStep < totalSteps) {
-                updateStep(currentStep + 1);
-            }
-        });
-
-        // Event listeners para los números de paso
-        stepLinks.forEach(link => {
-            link.addEventListener('click', () => {
-                const step = parseInt(link.dataset.step);
-                updateStep(step);
-            });
-        });
-
-        // Inicializar
-        updateStep(1);
-    </script>
+    <script src="js/navigation.js"></script>
+    <script src="js/protocol-steps.js"></script>
 </body>
-
 </html>
