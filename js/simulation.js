@@ -1,4 +1,4 @@
-// simulation.js - Simulación de la máquina de corte directo - VERSIÓN CORREGIDA
+// simulation.js - Simulación de la máquina de corte directo - VERSIÓN FINAL CORREGIDA
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Inicializando simulación...');
     
@@ -40,6 +40,14 @@ document.addEventListener('DOMContentLoaded', function() {
     let chartData = {
         labels: [],      // Desplazamientos
         values: []       // Esfuerzos de corte
+    };
+    
+    // Límites fijos para los gráficos
+    const chartLimits = {
+        xMin: 0,
+        xMax: 12,        // Desplazamiento máximo en mm
+        yMin: 0,
+        yMax: 400        // Esfuerzo máximo en kPa
     };
     
     // Actualizar valores de los controles
@@ -164,9 +172,9 @@ document.addEventListener('DOMContentLoaded', function() {
         ctx.font = '16px Arial';
         ctx.fillText('Máquina de Corte Directo HM-5750', 20, 30);
         ctx.font = '14px Arial';
-        ctx.fillText(Tipo: ${soilType} | Cohesión: ${cohesion} kPa | φ: ${frictionAngle}°, 20, 55);
-        ctx.fillText(σ: ${normalStress} kPa | Estado: ${saturation === 'saturated' ? 'Saturado' : 'Seco'}, 20, 80);
-        ctx.fillText(Desplazamiento: ${displacement.toFixed(2)} mm, 20, 105);
+        ctx.fillText(`Tipo: ${soilType} | Cohesión: ${cohesion} kPa | φ: ${frictionAngle}°`, 20, 55);
+        ctx.fillText(`σ: ${normalStress} kPa | Estado: ${saturation === 'saturated' ? 'Saturado' : 'Seco'}`, 20, 80);
+        ctx.fillText(`Desplazamiento: ${displacement.toFixed(2)} mm`, 20, 105);
     }
     
     function getSoilColor() {
@@ -311,11 +319,11 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('verticalDeformation').textContent = (displacement * 0.05).toFixed(3);
         document.getElementById('shearForce').textContent = (shearStress * 1000).toFixed(0);
         
-        // Actualizar gráficos - CORREGIDO
+        // Actualizar gráficos
         updateChart(displacement, shearStress);
     }
     
-    // FUNCIÓN CORREGIDA: Actualizar gráfico principal
+    // FUNCIÓN CORREGIDA: Actualizar gráfico principal CON LÍMITES FIJOS
     function updateChart(currentDisplacement, currentStress) {
         if (!window.shearChart) return;
         
@@ -326,16 +334,23 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // LIMITAR a 50 puntos como máximo
             if (chartData.labels.length > 50) {
-                chartData.labels.shift(); // Quitar el más viejo
-                chartData.values.shift(); // Quitar el más viejo
+                chartData.labels.shift();
+                chartData.values.shift();
             }
             
-            // Actualizar el gráfico - ESTA ES LA CLAVE
+            // Actualizar el gráfico
             window.shearChart.data.labels = chartData.labels;
             window.shearChart.data.datasets[0].data = chartData.values;
             
-            // Configurar límites del eje X
-            window.shearChart.options.scales.x.max = Math.max(12, currentDisplacement + 2);
+            // IMPORTANTE: Ajustar límites dinámicos del eje X
+            // La gráfica se moverá hacia la derecha (adelante) pero no cambiará de escala
+            const currentMaxX = Math.max(12, currentDisplacement + 2);
+            window.shearChart.options.scales.x.max = currentMaxX;
+            
+            // IMPORTANTE: Mantener límites fijos en el eje Y
+            // Esto evita que la gráfica se mueva hacia arriba/abajo
+            window.shearChart.options.scales.y.min = chartLimits.yMin;
+            window.shearChart.options.scales.y.max = chartLimits.yMax;
             
             // Actualizar solo si hay cambios
             window.shearChart.update('none');
@@ -409,7 +424,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.shearChart) {
             window.shearChart.data.labels = [];
             window.shearChart.data.datasets[0].data = [];
-            window.shearChart.options.scales.x.max = 12;
+            // Restaurar límites iniciales
+            window.shearChart.options.scales.x.max = chartLimits.xMax;
             window.shearChart.update();
         }
         
@@ -428,7 +444,7 @@ document.addEventListener('DOMContentLoaded', function() {
     pauseBtn.addEventListener('click', pauseSimulation);
     resetBtn.addEventListener('click', resetSimulation);
     
-    // Inicializar gráficos - VERSIÓN SIMPLIFICADA
+    // Inicializar gráficos - VERSIÓN CORREGIDA CON LÍMITES FIJOS
     function initCharts() {
         const chartCanvas = document.getElementById('chartCanvas');
         const mohrCanvas = document.getElementById('mohrCanvas');
@@ -438,63 +454,94 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Gráfico de esfuerzo-deformación - CONFIGURACIÓN CORREGIDA
+        // Gráfico de esfuerzo-deformación - CONFIGURACIÓN CORREGIDA CON LÍMITES FIJOS
         const chartCtx = chartCanvas.getContext('2d');
         window.shearChart = new Chart(chartCtx, {
             type: 'line',
             data: {
-                labels: [], // Inicialmente vacío
+                labels: [],
                 datasets: [{
                     label: 'Esfuerzo de Corte (kPa)',
-                    data: [], // Inicialmente vacío
-                    borderColor: 'rgb(75, 192, 192)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
-                    tension: 0.1,
-                    fill: false,
+                    data: [],
+                    borderColor: '#2c3e50',
+                    backgroundColor: 'rgba(44, 62, 80, 0.1)',
+                    tension: 0.3,
+                    fill: true,
                     borderWidth: 2,
-                    pointRadius: 3,
-                    pointHoverRadius: 5
+                    pointRadius: 2,
+                    pointHoverRadius: 4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 animation: {
-                    duration: 0 // Sin animación para mejor rendimiento
+                    duration: 0
                 },
                 scales: {
                     x: {
                         type: 'linear',
                         title: {
                             display: true,
-                            text: 'Desplazamiento Horizontal (mm)'
+                            text: 'Desplazamiento Horizontal (mm)',
+                            color: '#2c3e50',
+                            font: {
+                                weight: 'bold'
+                            }
                         },
                         beginAtZero: true,
-                        min: 0,
-                        max: 12,
+                        min: chartLimits.xMin,
+                        max: chartLimits.xMax,
                         ticks: {
-                            stepSize: 1
+                            stepSize: 1,
+                            color: '#2c3e50'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
                         }
                     },
                     y: {
                         title: {
                             display: true,
-                            text: 'Esfuerzo de Corte (kPa)'
+                            text: 'Esfuerzo de Corte (kPa)',
+                            color: '#2c3e50',
+                            font: {
+                                weight: 'bold'
+                            }
                         },
                         beginAtZero: true,
-                        suggestedMax: 400
+                        min: chartLimits.yMin,     // LÍMITE FIJO INFERIOR
+                        max: chartLimits.yMax,     // LÍMITE FIJO SUPERIOR
+                        ticks: {
+                            stepSize: 50,          // ESCALA FIJA
+                            color: '#2c3e50'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        }
                     }
                 },
                 plugins: {
                     legend: {
                         display: true,
-                        position: 'top'
+                        position: 'top',
+                        labels: {
+                            color: '#2c3e50',
+                            font: {
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(44, 62, 80, 0.9)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff'
                     }
                 }
             }
         });
         
-        // Gráfico de Mohr-Coulomb - SOLO LÍNEA INICIAL
+        // Gráfico de Mohr-Coulomb
         const mohrCtx = mohrCanvas.getContext('2d');
         window.mohrChart = new Chart(mohrCtx, {
             type: 'scatter',
@@ -502,8 +549,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: 'Envolvente de Falla',
                     data: [],
-                    borderColor: 'rgb(255, 99, 132)',
-                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
                     showLine: true,
                     fill: false,
                     borderWidth: 2,
@@ -517,18 +564,50 @@ document.addEventListener('DOMContentLoaded', function() {
                     x: {
                         title: {
                             display: true,
-                            text: 'Esfuerzo Normal (kPa)'
+                            text: 'Esfuerzo Normal (kPa)',
+                            color: '#2c3e50',
+                            font: {
+                                weight: 'bold'
+                            }
                         },
                         min: 0,
-                        max: 450
+                        max: 450,
+                        ticks: {
+                            color: '#2c3e50'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        }
                     },
                     y: {
                         title: {
                             display: true,
-                            text: 'Resistencia al Corte (kPa)'
+                            text: 'Resistencia al Corte (kPa)',
+                            color: '#2c3e50',
+                            font: {
+                                weight: 'bold'
+                            }
                         },
                         min: 0,
-                        max: 300
+                        max: 300,
+                        ticks: {
+                            color: '#2c3e50'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            color: '#2c3e50',
+                            font: {
+                                weight: 'bold'
+                            }
+                        }
                     }
                 }
             }
