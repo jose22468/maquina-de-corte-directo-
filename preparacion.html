@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Preparación - Humboldt HM-5750</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- SOLO styles.css -->
+    <!-- CAMBIO IMPORTANTE: Cargar styles.css primero -->
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles4.css">
 </head>
 <body>
+    <!-- Usamos el mismo header que las otras páginas -->
     <header>
         <div class="logo-container">
             <div class="logo">
@@ -22,6 +24,7 @@
         </div>
     </header>
 
+    <!-- Usamos la misma navegación -->
     <nav>
         <ul>
             <li><a href="index.html"><i class="fas fa-home"></i> Inicio</a></li>
@@ -36,42 +39,150 @@
 
     <div class="container">
         <section class="section active">
-            <h2>Preparación de la Muestra</h2>
-            <p>La correcta preparación de la muestra es crucial para obtener resultados confiables.</p>
-            
-            <div class="specs-container">
-                <div class="specs-group">
-                    <h3><i class="fas fa-mountain"></i> Muestras Inalteradas</h3>
-                    <ul>
-                        <li>Extracción cuidadosa con muestreador tubular</li>
-                        <li>Preservación de la estructura natural</li>
-                        <li>Mantenimiento del contenido de humedad natural</li>
-                        <li>Uso de cortador para tamaño específico</li>
-                    </ul>
+            <!-- Hero Section -->
+            <div class="hero-section">
+                <div class="hero-content">
+                    <h1 class="hero-title">
+                        <i class="fas fa-vial"></i>
+                        Preparación de la Muestra
+                    </h1>
+                    <p class="hero-description">
+                        La correcta preparación de la muestra es crucial para obtener resultados confiables en el ensayo de corte directo.
+                    </p>
+                    <div class="standards-badges">
+                        <div class="badge">ASTM D3080</div>
+                        <div class="badge">AASHTO T236</div>
+                        <div class="badge">BS 1377.7</div>
+                    </div>
                 </div>
+            </div>
+
+            <!-- Methods Section -->
+            <div class="methods-section">
+                <h2>Métodos de Preparación de Muestras</h2>
                 
-                <div class="specs-group">
-                    <h3><i class="fas fa-trowel"></i> Muestras Remoldeadas</h3>
-                    <ul>
-                        <li>Preparación a densidad específica</li>
-                        <li>Control preciso de contenido de humedad</li>
-                        <li>Compactación en capas uniformes</li>
-                        <li>Uso de moldes de preparación</li>
-                    </ul>
+                <div class="methods-grid">
+                    <!-- Muestra Inalterada -->
+                    <div class="method-card">
+                        <div class="method-header">
+                            <div class="method-icon">
+                                <i class="fas fa-mountain"></i>
+                            </div>
+                            <h3>Muestras Inalteradas</h3>
+                        </div>
+                        <ul class="method-features">
+                            <li>
+                                <i class="fas fa-check"></i>
+                                <span>Extracción cuidadosa con muestreador tubular</span>
+                            </li>
+                            <li>
+                                <i class="fas fa-check"></i>
+                                <span>Preservación de la estructura natural del suelo</span>
+                            </li>
+                            <li>
+                                <i class="fas fa-check"></i>
+                                <span>Uso de cortador para obtener muestra del tamaño correcto</span>
+                            </li>
+                            <li>
+                                <i class="fas fa-check"></i>
+                                <span>Mantenimiento del contenido de humedad natural</span>
+                            </li>
+                        </ul>
+                        <div class="method-visual">
+                            <div class="soil-sample undisturbed">
+                                <div class="soil-layer" style="background: #8B4513;"></div>
+                                <div class="soil-layer" style="background: #A0522D;"></div>
+                                <div class="soil-layer" style="background: #CD853F;"></div>
+                            </div>
+                            <p class="visual-label">Estructura natural preservada</p>
+                        </div>
+                    </div>
+
+                    <!-- Muestra Remoldeada -->
+                    <div class="method-card">
+                        <div class="method-header">
+                            <div class="method-icon">
+                                <i class="fas fa-trowel"></i>
+                            </div>
+                            <h3>Muestras Remoldeadas</h3>
+                        </div>
+                        <ul class="method-features">
+                            <li>
+                                <i class="fas fa-check"></i>
+                                <span>Preparación a densidad y contenido de humedad específicos</span>
+                            </li>
+                            <li>
+                                <i class="fas fa-check"></i>
+                                <span>Compactación en capas con tamper o dolly</span>
+                            </li>
+                            <li>
+                                <i class="fas fa-check"></i>
+                                <span>Control preciso de parámetros de compactación</span>
+                            </li>
+                            <li>
+                                <i class="fas fa-check"></i>
+                                <span>Uso de moldes de preparación</span>
+                            </li>
+                        </ul>
+                        <div class="method-visual">
+                            <div class="soil-sample remolded">
+                                <div class="soil-layer uniform" style="background: #D2691E;"></div>
+                            </div>
+                            <p class="visual-label">Estructura uniforme y controlada</p>
+                        </div>
+                    </div>
                 </div>
             </div>
-            
-            <div class="notes">
-                <h4><i class="fas fa-exclamation-circle"></i> Proceso de Compactación</h4>
-                <p>1. Determine densidad y humedad requeridas</p>
-                <p>2. Prepare material y agregue agua si es necesario</p>
-                <p>3. Compacte en 3-5 capas con dolly/tamper</p>
-                <p>4. Verifique altura y peso finales</p>
+
+            <!-- Compaction Process -->
+            <div class="compaction-section">
+                <h2>Proceso de Compactación</h2>
+                <p class="section-subtitle">Para muestras remoldeadas, el proceso de compactación debe seguir estos pasos:</p>
+                
+                <div class="compaction-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>Determinación de Parámetros</h3>
+                            <p>Establezca la densidad seca y contenido de humedad deseados según el proyecto.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>Preparación de Material</h3>
+                            <p>Pese la cantidad necesaria de suelo y agregue agua para alcanzar el contenido de humedad requerido.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>Compactación en Capas</h3>
+                            <p>Divida la muestra en partes iguales y compacte cada capa con el dolly/tamper hasta alcanzar la altura especificada.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h3>Verificación</h3>
+                            <p>Verifique la altura final y el peso de la muestra para asegurar que cumple con los requisitos.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-            
-            <div class="notes" style="background: #e8f4f8; border-left-color: #3498db;">
-                <h4><i class="fas fa-info-circle"></i> Importante</h4>
-                <p>El tiempo de saturación varía según el tipo de suelo y debe seguir las especificaciones del estándar aplicable (ASTM D3080, AASHTO T236).</p>
+
+            <!-- Important Notice -->
+            <div class="notice-section">
+                <div class="notice-card">
+                    <div class="notice-header">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>Importante</h3>
+                    </div>
+                    <p>El proceso de saturación (cuando se requiere) debe realizarse después de la compactación y antes del ensayo de corte. El tiempo de saturación varía según el tipo de suelo y debe seguir las especificaciones del estándar aplicable.</p>
+                </div>
             </div>
         </section>
     </div>
