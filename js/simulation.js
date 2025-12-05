@@ -1,4 +1,4 @@
-// simulation.js - Simulación de la máquina de corte directo COMPLETA Y CORREGIDA
+// simulation.js - Simulación de la máquina de corte directo
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Inicializando simulación...');
     
@@ -36,10 +36,10 @@ document.addEventListener('DOMContentLoaded', function() {
     let saturation = 'dry';
     let speed = 1.2;
     
-    // Datos para gráficos
-    let testData = {
-        displacements: [],
-        shearForces: []
+    // Datos para la gráfica
+    let chartData = {
+        labels: [],   // Para los desplazamientos
+        values: []    // Para los esfuerzos de corte
     };
     
     // Actualizar valores de los controles
@@ -315,63 +315,29 @@ document.addEventListener('DOMContentLoaded', function() {
         updateChart(displacement, shearStress);
     }
     
-    // CORREGIDO: Función para actualizar gráfico con límite de puntos
+    // Función para actualizar la gráfica de esfuerzo-deformación
     function updateChart(displacement, stress) {
         if (!window.shearChart) return;
         
-        try {
-            // Agregar nuevos datos
-            testData.displacements.push(displacement);
-            testData.shearForces.push(stress);
-            
-            // LIMITAR: Solo mantener los últimos 50 puntos
-            if (testData.displacements.length > 50) {
-                testData.displacements.shift(); // Elimina el primer elemento
-                testData.shearForces.shift(); // Elimina el primer elemento
-            }
-            
-            window.shearChart.data.labels = testData.displacements;
-            window.shearChart.data.datasets[0].data = testData.shearForces;
-            window.shearChart.update('none');
-            
-            // Actualizar gráfico de Mohr-Coulomb con punto actual
-            updateMohrChartPoint(normalStress, stress);
-        } catch (error) {
-            console.error('Error en updateChart:', error);
-        }
-    }
-    
-    // NUEVA: Función para actualizar gráfico de Mohr-Coulomb
-    function updateMohrChartPoint(normalStressValue, shearStressValue) {
-        if (!window.mohrChart) return;
+        // Agregar datos
+        chartData.labels.push(displacement.toFixed(2));
+        chartData.values.push(stress);
         
-        try {
-            // Crear o actualizar el conjunto de datos para puntos de falla
-            if (!window.mohrChart.data.datasets[1]) {
-                window.mohrChart.data.datasets[1] = {
-                    label: 'Puntos de Falla',
-                    data: [],
-                    backgroundColor: 'rgb(54, 162, 235)',
-                    pointRadius: 6,
-                    showLine: false
-                };
-            }
-            
-            // Agregar el punto actual
-            window.mohrChart.data.datasets[1].data.push({
-                x: normalStressValue,
-                y: shearStressValue
-            });
-            
-            // Limitar a 3 puntos máximo
-            if (window.mohrChart.data.datasets[1].data.length > 3) {
-                window.mohrChart.data.datasets[1].data.shift();
-            }
-            
-            window.mohrChart.update();
-        } catch (error) {
-            console.error('Error en updateMohrChartPoint:', error);
+        // Limitar a 50 puntos para que la gráfica no se desplace indefinidamente
+        if (chartData.labels.length > 50) {
+            chartData.labels.shift();  // Eliminar el primer elemento (el más antiguo)
+            chartData.values.shift();  // Eliminar el primer elemento (el más antiguo)
         }
+        
+        // Actualizar el gráfico
+        window.shearChart.data.labels = chartData.labels;
+        window.shearChart.data.datasets[0].data = chartData.values;
+        
+        // Ajustar el rango del eje X para que se desplace hacia la derecha
+        window.shearChart.options.scales.x.min = chartData.labels[0]; // El primer valor (el más antiguo)
+        window.shearChart.options.scales.x.max = chartData.labels[chartData.labels.length - 1]; // El último valor
+        
+        window.shearChart.update();
     }
     
     // Control de la simulación
@@ -395,7 +361,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (animationId) {
             cancelAnimationFrame(animationId);
-            animationId = null;
         }
     }
     
@@ -407,29 +372,23 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (animationId) {
             cancelAnimationFrame(animationId);
-            animationId = null;
         }
     }
     
-    // CORREGIDO: Función para reiniciar simulación
     function resetSimulation() {
-        console.log('Reiniciando ensayo...');
-        
-        if (animationId) {
-            cancelAnimationFrame(animationId);
-            animationId = null;
-        }
-        
         isRunning = false;
         displacement = 0;
-        testData = { displacements: [], shearForces: [] };
+        chartData = { labels: [], values: [] }; // Reiniciar datos de la gráfica
         
         startBtn.disabled = false;
         pauseBtn.disabled = true;
-        resetBtn.disabled = false;
         startBtn.innerHTML = '<i class="fas fa-play"></i> Iniciar Ensayo';
         
-        // Reiniciar gráficos
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+        }
+        
+        // Reiniciar gráfico de esfuerzo-deformación
         if (window.shearChart) {
             window.shearChart.data.labels = [];
             window.shearChart.data.datasets[0].data = [];
@@ -437,9 +396,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Reiniciar gráfico de Mohr-Coulomb
-        if (window.mohrChart && window.mohrChart.data.datasets[1]) {
-            window.mohrChart.data.datasets[1].data = [];
-            window.mohrChart.update();
+        if (window.mohrChart) {
+            updateMohrChart(); // Esto restablecerá la línea de la envolvente
         }
         
         // Reiniciar resultados
@@ -449,7 +407,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('shearForce').textContent = '-';
         
         drawMachine();
-        console.log('Ensayo reiniciado');
     }
     
     // Configurar event listeners para botones
@@ -469,14 +426,14 @@ document.addEventListener('DOMContentLoaded', function() {
         window.shearChart = new Chart(chartCtx, {
             type: 'line',
             data: {
-                labels: [],
+                labels: chartData.labels,
                 datasets: [{
                     label: 'Esfuerzo de Corte (kPa)',
-                    data: [],
+                    data: chartData.values,
                     borderColor: 'rgb(75, 192, 192)',
                     backgroundColor: 'rgba(75, 192, 192, 0.1)',
                     tension: 0.1,
-                    fill: false,
+                    fill: true,
                     borderWidth: 2
                 }]
             },
@@ -490,14 +447,15 @@ document.addEventListener('DOMContentLoaded', function() {
                             text: 'Desplazamiento Horizontal (mm)'
                         },
                         beginAtZero: true,
-                        max: 12
+                        max: 10 // Establecer un máximo inicial
                     },
                     y: {
                         title: {
                             display: true,
                             text: 'Esfuerzo de Corte (kPa)'
                         },
-                        beginAtZero: true
+                        beginAtZero: true,
+                        suggestedMax: 350 // Un valor máximo sugerido para el eje Y
                     }
                 }
             }
@@ -549,21 +507,17 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateMohrChart() {
         if (!window.mohrChart) return;
         
-        try {
-            const frictionRad = frictionAngle * Math.PI / 180;
-            const data = [
-                {x: 0, y: cohesion},
-                {x: 100, y: cohesion + 100 * Math.tan(frictionRad)},
-                {x: 200, y: cohesion + 200 * Math.tan(frictionRad)},
-                {x: 300, y: cohesion + 300 * Math.tan(frictionRad)},
-                {x: 400, y: cohesion + 400 * Math.tan(frictionRad)}
-            ];
-            
-            window.mohrChart.data.datasets[0].data = data;
-            window.mohrChart.update();
-        } catch (error) {
-            console.error('Error en updateMohrChart:', error);
-        }
+        const frictionRad = frictionAngle * Math.PI / 180;
+        const data = [
+            {x: 0, y: cohesion},
+            {x: 100, y: cohesion + 100 * Math.tan(frictionRad)},
+            {x: 200, y: cohesion + 200 * Math.tan(frictionRad)},
+            {x: 300, y: cohesion + 300 * Math.tan(frictionRad)},
+            {x: 400, y: cohesion + 400 * Math.tan(frictionRad)}
+        ];
+        
+        window.mohrChart.data.datasets[0].data = data;
+        window.mohrChart.update();
     }
     
     // Inicializar
