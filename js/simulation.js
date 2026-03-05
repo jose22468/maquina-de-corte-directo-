@@ -449,6 +449,11 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('No se encontraron los canvas de gráficos');
             return;
         }
+
+        // Evitar ciclos de redimensionado (canvas creciendo infinitamente)
+        // al entrar en la pestaña de simulación.
+        chartCanvas.style.height = '250px';
+        mohrCanvas.style.height = '250px';
         
         // Gráfico de esfuerzo-deformación - CONFIGURACIÓN CORREGIDA CON LÍMITES FIJOS
         const chartCtx = chartCanvas.getContext('2d');
@@ -470,7 +475,8 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
+                aspectRatio: 1.6,
                 animation: {
                     duration: 0
                 },
@@ -555,7 +561,8 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
+                aspectRatio: 1.6,
                 scales: {
                     x: {
                         title: {
