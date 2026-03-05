@@ -38,8 +38,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Datos para gráficos - ARRAYS VACÍOS
     let chartData = {
-        labels: [],      // Desplazamientos
-        values: []       // Esfuerzos de corte
+        points: [] // Puntos {x, y} para escala lineal
     };
     
     // Límites fijos para los gráficos
@@ -279,11 +278,15 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Ajustar según desplazamiento
         const peakDisplacement = soilType === 'clay' ? 4 : 2;
+        let shearStress;
         if (displacement <= peakDisplacement) {
-            return strength * (displacement / peakDisplacement);
+            shearStress = strength * (displacement / peakDisplacement);
         } else {
-            return strength * (1 - 0.1 * (displacement - peakDisplacement));
+            shearStress = strength * (1 - 0.1 * (displacement - peakDisplacement));
         }
+
+        // Evitar valores negativos que deformen el eje Y
+        return Math.max(0, shearStress);
     }
     
     // Función de animación
@@ -329,18 +332,18 @@ document.addEventListener('DOMContentLoaded', function() {
         
         try {
             // Agregar nuevo punto
-            chartData.labels.push(currentDisplacement.toFixed(2));
-            chartData.values.push(currentStress);
+            chartData.points.push({
+                x: Number(currentDisplacement.toFixed(2)),
+                y: Math.max(0, currentStress)
+            });
             
             // LIMITAR a 50 puntos como máximo
-            if (chartData.labels.length > 50) {
-                chartData.labels.shift();
-                chartData.values.shift();
+            if (chartData.points.length > 50) {
+                chartData.points.shift();
             }
             
             // Actualizar el gráfico
-            window.shearChart.data.labels = chartData.labels;
-            window.shearChart.data.datasets[0].data = chartData.values;
+            window.shearChart.data.datasets[0].data = chartData.points;
             
             // IMPORTANTE: Ajustar límites dinámicos del eje X
             // La gráfica se moverá hacia la derecha (adelante) pero no cambiará de escala
@@ -411,8 +414,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Reiniciar datos del gráfico
         chartData = {
-            labels: [],
-            values: []
+            points: []
         };
         
         startBtn.disabled = false;
@@ -422,7 +424,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Reiniciar gráficos
         if (window.shearChart) {
-            window.shearChart.data.labels = [];
             window.shearChart.data.datasets[0].data = [];
             // Restaurar límites iniciales
             window.shearChart.options.scales.x.max = chartLimits.xMax;
@@ -459,7 +460,6 @@ document.addEventListener('DOMContentLoaded', function() {
         window.shearChart = new Chart(chartCtx, {
             type: 'line',
             data: {
-                labels: [],
                 datasets: [{
                     label: 'Esfuerzo de Corte (kPa)',
                     data: [],
@@ -474,7 +474,8 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
                 animation: {
                     duration: 0
                 },
@@ -559,7 +560,8 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
                 scales: {
                     x: {
                         title: {

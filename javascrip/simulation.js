@@ -262,11 +262,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Ajustar según desplazamiento
         const peakDisplacement = soilType === 'clay' ? 4 : 2;
+        let shearStress;
         if (displacement <= peakDisplacement) {
-            return strength * (displacement / peakDisplacement);
+            shearStress = strength * (displacement / peakDisplacement);
         } else {
-            return strength * (1 - 0.1 * (displacement - peakDisplacement));
+            shearStress = strength * (1 - 0.1 * (displacement - peakDisplacement));
         }
+
+        return Math.max(0, shearStress);
     }
     
     // Función de animación
@@ -413,7 +416,8 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
                 scales: {
                     x: {
                         title: {
@@ -451,7 +455,8 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
                 scales: {
                     x: {
                         title: {
