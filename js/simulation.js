@@ -38,8 +38,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Datos para gráficos - ARRAYS VACÍOS
     let chartData = {
-        labels: [],      // Desplazamientos
-        values: []       // Esfuerzos de corte
+        points: []       // Puntos {x, y} para eje lineal
     };
     
     // Límites fijos para los gráficos
@@ -262,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function() {
         ctx.fill();
         
         // Calcular esfuerzo de corte
-        const shearStress = calculateShearStress();
+        const shearStress = Math.max(0, calculateShearStress());
         ctx.fillStyle = '#e74c3c';
         ctx.fillText('τ = ' + shearStress.toFixed(2) + ' kPa', x + width + 35, y + height/2 - 10);
     }
@@ -329,18 +328,17 @@ document.addEventListener('DOMContentLoaded', function() {
         
         try {
             // Agregar nuevo punto
-            chartData.labels.push(currentDisplacement.toFixed(2));
-            chartData.values.push(currentStress);
+            const safeX = Number.isFinite(currentDisplacement) ? Number(currentDisplacement.toFixed(2)) : 0;
+            const safeY = Number.isFinite(currentStress) ? Math.max(0, currentStress) : 0;
+            chartData.points.push({ x: safeX, y: safeY });
             
             // LIMITAR a 50 puntos como máximo
-            if (chartData.labels.length > 50) {
-                chartData.labels.shift();
-                chartData.values.shift();
+            if (chartData.points.length > 50) {
+                chartData.points.shift();
             }
             
             // Actualizar el gráfico
-            window.shearChart.data.labels = chartData.labels;
-            window.shearChart.data.datasets[0].data = chartData.values;
+            window.shearChart.data.datasets[0].data = chartData.points;
             
             // IMPORTANTE: Ajustar límites dinámicos del eje X
             // La gráfica se moverá hacia la derecha (adelante) pero no cambiará de escala
@@ -411,8 +409,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Reiniciar datos del gráfico
         chartData = {
-            labels: [],
-            values: []
+            points: []
         };
         
         startBtn.disabled = false;
@@ -422,7 +419,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Reiniciar gráficos
         if (window.shearChart) {
-            window.shearChart.data.labels = [];
             window.shearChart.data.datasets[0].data = [];
             // Restaurar límites iniciales
             window.shearChart.options.scales.x.max = chartLimits.xMax;
@@ -459,7 +455,6 @@ document.addEventListener('DOMContentLoaded', function() {
         window.shearChart = new Chart(chartCtx, {
             type: 'line',
             data: {
-                labels: [],
                 datasets: [{
                     label: 'Esfuerzo de Corte (kPa)',
                     data: [],
@@ -469,7 +464,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     fill: true,
                     borderWidth: 2,
                     pointRadius: 2,
-                    pointHoverRadius: 4
+                    pointHoverRadius: 4,
+                    parsing: false
                 }]
             },
             options: {
