@@ -48,6 +48,8 @@ document.addEventListener('DOMContentLoaded', function() {
         yMin: 0,
         yMax: 400        // Esfuerzo máximo en kPa
     };
+    const RESULTS_STORAGE_KEY = 'directShearLatestResults';
+    let lastPersistAt = 0;
     
     // Actualizar valores de los controles
     function updateControlValues() {
@@ -320,8 +322,37 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Actualizar gráficos
         updateChart(displacement, shearStress);
+
+        // Guardado periódico para la pestaña de resultados
+        const now = Date.now();
+        if (now - lastPersistAt > 500) {
+            persistResults();
+            lastPersistAt = now;
+        }
     }
     
+    function persistResults() {
+        try {
+            const maxPoint = chartData.points.reduce((max, point) => point.y > max.y ? point : max, { x: 0, y: 0 });
+            const payload = {
+                savedAt: new Date().toISOString(),
+                soilType,
+                cohesion,
+                frictionAngle,
+                normalStress,
+                saturation,
+                speed,
+                points: chartData.points,
+                maxShearStress: Number(maxPoint.y.toFixed(2)),
+                displacementAtFailure: Number(maxPoint.x.toFixed(2))
+            };
+
+            localStorage.setItem(RESULTS_STORAGE_KEY, JSON.stringify(payload));
+        } catch (error) {
+            console.warn('No se pudieron guardar resultados:', error);
+        }
+    }
+
     // FUNCIÓN CORREGIDA: Actualizar gráfico principal CON LÍMITES FIJOS
     function updateChart(currentDisplacement, currentStress) {
         if (!window.shearChart) return;
@@ -331,11 +362,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const safeX = Number.isFinite(currentDisplacement) ? Number(currentDisplacement.toFixed(2)) : 0;
             const safeY = Number.isFinite(currentStress) ? Math.max(0, currentStress) : 0;
             chartData.points.push({ x: safeX, y: safeY });
-            
-            // LIMITAR a 50 puntos como máximo
-            if (chartData.points.length > 50) {
-                chartData.points.shift();
-            }
             
             // Actualizar el gráfico
             window.shearChart.data.datasets[0].data = chartData.points;
@@ -381,6 +407,8 @@ document.addEventListener('DOMContentLoaded', function() {
             cancelAnimationFrame(animationId);
             animationId = null;
         }
+
+        persistResults();
     }
     
     function stopSimulation() {
@@ -393,6 +421,8 @@ document.addEventListener('DOMContentLoaded', function() {
             cancelAnimationFrame(animationId);
             animationId = null;
         }
+
+        persistResults();
     }
     
     // Función para reiniciar simulación
