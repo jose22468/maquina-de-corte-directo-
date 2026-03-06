@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let chartData = {
         points: []       // Puntos {x, y} para eje lineal
     };
+    const RESULTS_STORAGE_KEY = 'directShearLatestResult';
     
     // Límites fijos para los gráficos
     const chartLimits = {
@@ -332,11 +333,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const safeY = Number.isFinite(currentStress) ? Math.max(0, currentStress) : 0;
             chartData.points.push({ x: safeX, y: safeY });
             
-            // LIMITAR a 50 puntos como máximo
-            if (chartData.points.length > 50) {
-                chartData.points.shift();
-            }
-            
             // Actualizar el gráfico
             window.shearChart.data.datasets[0].data = chartData.points;
             
@@ -355,6 +351,33 @@ document.addEventListener('DOMContentLoaded', function() {
             
         } catch (error) {
             console.error('Error en updateChart:', error);
+        }
+    }
+
+    function saveResultsSnapshot() {
+        try {
+            if (!chartData.points.length) return;
+
+            const maxPoint = chartData.points.reduce((max, point) =>
+                point.y > max.y ? point : max, chartData.points[0]);
+
+            const payload = {
+                timestamp: new Date().toISOString(),
+                soilType,
+                saturation,
+                cohesion,
+                frictionAngle,
+                normalStress,
+                speed,
+                displacement: Number(displacement.toFixed(2)),
+                maxShearStress: Number(maxPoint.y.toFixed(2)),
+                failureDisplacement: Number(maxPoint.x.toFixed(2)),
+                points: chartData.points
+            };
+
+            localStorage.setItem(RESULTS_STORAGE_KEY, JSON.stringify(payload));
+        } catch (error) {
+            console.error('No se pudieron guardar los resultados:', error);
         }
     }
     
@@ -381,6 +404,8 @@ document.addEventListener('DOMContentLoaded', function() {
             cancelAnimationFrame(animationId);
             animationId = null;
         }
+
+        saveResultsSnapshot();
     }
     
     function stopSimulation() {
@@ -393,6 +418,8 @@ document.addEventListener('DOMContentLoaded', function() {
             cancelAnimationFrame(animationId);
             animationId = null;
         }
+
+        saveResultsSnapshot();
     }
     
     // Función para reiniciar simulación
