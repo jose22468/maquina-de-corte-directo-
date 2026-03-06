@@ -35,6 +35,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let normalStress = 100;
     let saturation = 'dry';
     let speed = 1.2;
+
+    const RESULTS_STORAGE_KEY = 'directShearLastRun';
     
     // Datos para gráficos - ARRAYS VACÍOS
     let chartData = {
@@ -337,6 +339,46 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    function saveResultsToStorage(currentShearStress) {
+        const safeStress = Number.isFinite(currentShearStress) ? Number(currentShearStress.toFixed(3)) : 0;
+        const safeDisplacement = Number.isFinite(displacement) ? Number(displacement.toFixed(3)) : 0;
+        const safeNormalStress = Number.isFinite(normalStress) ? normalStress : 0;
+
+        const payload = {
+            timestamp: new Date().toISOString(),
+            parameters: {
+                soilType,
+                cohesion,
+                frictionAngle,
+                normalStress: safeNormalStress,
+                saturation,
+                speed
+            },
+            latest: {
+                displacement: safeDisplacement,
+                shearStress: safeStress,
+                verticalDeformation: Number((safeDisplacement * 0.05).toFixed(3)),
+                shearForce: Number((safeStress * 1000).toFixed(0))
+            },
+            stressStrainPoints: chartData.points,
+            mohrEnvelope: window.mohrChart?.data?.datasets?.[0]?.data || []
+        };
+
+        try {
+            localStorage.setItem(RESULTS_STORAGE_KEY, JSON.stringify(payload));
+        } catch (error) {
+            console.warn('No se pudo guardar resultados en localStorage:', error);
+        }
+    }
+
+    function clearResultsStorage() {
+        try {
+            localStorage.removeItem(RESULTS_STORAGE_KEY);
+        } catch (error) {
+            console.warn('No se pudo limpiar resultados en localStorage:', error);
+        }
+    }
+
     function updateResults() {
         const shearStress = calculateShearStress();
         
@@ -348,6 +390,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Actualizar gráficos
         updateChart(displacement, shearStress);
+
+        // Persistir para la pestaña de resultados
+        saveResultsToStorage(shearStress);
     }
     
     // FUNCIÓN CORREGIDA: Actualizar gráfico principal CON LÍMITES FIJOS
@@ -362,11 +407,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Actualizar el gráfico
             window.shearChart.data.datasets[0].data = chartData.points;
-            
-            // IMPORTANTE: Ajustar límites dinámicos del eje X
-            // La gráfica se moverá hacia la derecha (adelante) pero no cambiará de escala
-            const currentMaxX = Math.max(12, currentDisplacement + 2);
-            window.shearChart.options.scales.x.max = currentMaxX;
+
+            // Mantener límites fijos en X para mostrar la curva completa
+            window.shearChart.options.scales.x.min = chartLimits.xMin;
+            window.shearChart.options.scales.x.max = chartLimits.xMax;
             
             // IMPORTANTE: Mantener límites fijos en el eje Y
             // Esto evita que la gráfica se mueva hacia arriba/abajo
@@ -459,6 +503,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('verticalDeformation').textContent = '-';
         document.getElementById('shearForce').textContent = '-';
         
+        clearResultsStorage();
+
         drawMachine();
         console.log('Ensayo reiniciado');
     }
@@ -663,6 +709,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             window.mohrChart.data.datasets[0].data = data;
             window.mohrChart.update();
+
+            // Mantener envolvente actualizada para la pestaña de resultados
+            saveResultsToStorage(calculateShearStress());
         } catch (error) {
             console.error('Error en updateMohrChart:', error);
         }
