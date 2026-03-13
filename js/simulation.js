@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let normalStress = 100;
     let saturation = 'dry';
     let speed = 1.2;
+    let simulationDurationHours = 8;
 
     const RESULTS_STORAGE_KEY = 'directShearLastRun';
     
@@ -53,6 +54,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const SIMULATION_STORAGE_KEY = 'directShear:lastSimulation';
 
+    const availableDurations = [8, 12, 24];
+    const simulationPresets = {
+        sand: { cohesion: 0, friction: 35 },
+        softClay: { cohesion: 18, friction: 18 },
+        stiffClay: { cohesion: 35, friction: 25 }
+    };
+
+    const defaultTableRows = [
+        { time: 0, load: 0, horizontal: 0, vertical: 0 },
+        { time: 2, load: 35, horizontal: 0.4, vertical: 0.08 },
+        { time: 4, load: 72, horizontal: 1.1, vertical: 0.16 },
+        { time: 6, load: 108, horizontal: 2.3, vertical: 0.23 },
+        { time: 8, load: 135, horizontal: 3.4, vertical: 0.28 }
+    ];
+
+    function getTableDataFromDOM() {
+        const rows = document.querySelectorAll('#simulationDataBody tr');
+        return Array.from(rows).map((row) => ({
+            time: parseFloat(row.querySelector('[data-field="time"]')?.value) || 0,
+            load: parseFloat(row.querySelector('[data-field="load"]')?.value) || 0,
+            horizontal: parseFloat(row.querySelector('[data-field="horizontal"]')?.value) || 0,
+            vertical: parseFloat(row.querySelector('[data-field="vertical"]')?.value) || 0
+        }));
+    }
+
     function saveSimulationSnapshot() {
         if (!chartData.points.length) return;
 
@@ -69,7 +95,9 @@ document.addEventListener('DOMContentLoaded', function() {
             normalStress,
             saturation,
             points: chartData.points,
-            peakShear
+            peakShear,
+            durationHours: simulationDurationHours,
+            tableData: getTableDataFromDOM()
         };
 
         try {
@@ -85,30 +113,22 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('frictionValue').textContent = frictionAngle + '°';
         document.getElementById('normalStressValue').textContent = normalStress + ' kPa';
         document.getElementById('speedValue').textContent = speed + ' mm/min';
+        const selectedDuration = document.getElementById('duration')?.value;
+        simulationDurationHours = Number(selectedDuration) || simulationDurationHours;
+        const durationInfo = document.getElementById('durationInfo');
+        if (durationInfo) {
+            durationInfo.textContent = `Simulación acelerada: ${simulationDurationHours} h`;
+        }
     }
     
     // Configurar event listeners para controles
     soilTypeSelect.addEventListener('change', function() {
         soilType = this.value;
-        
+
         // Actualizar valores según tipo de suelo
-        switch(soilType) {
-            case 'sand':
-                cohesion = 0;
-                frictionAngle = 35;
-                break;
-            case 'clay':
-                cohesion = 25;
-                frictionAngle = 20;
-                break;
-            case 'silt':
-                cohesion = 10;
-                frictionAngle = 28;
-                break;
-            case 'clayeySand':
-                cohesion = 15;
-                frictionAngle = 30;
-                break;
+        if (simulationPresets[soilType]) {
+            cohesion = simulationPresets[soilType].cohesion;
+            frictionAngle = simulationPresets[soilType].friction;
         }
         
         cohesionSlider.value = cohesion;
@@ -307,7 +327,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Ajustar según desplazamiento
-        const peakDisplacement = soilType === 'clay' ? 4 : 2;
+        const peakDisplacement = soilType === 'sand' ? 2 : 4;
         if (displacement <= peakDisplacement) {
             return strength * (displacement / peakDisplacement);
         } else {
@@ -319,8 +339,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function animate() {
         if (!isRunning) return;
         
-        // Incrementar desplazamiento
-        displacement += speed / 60;
+        // Incrementar desplazamiento (modo de prueba rápida para 8h, 12h y 24h)
+        const durationFactor = 24 / simulationDurationHours;
+        displacement += (speed / 60) * durationFactor;
         
         if (displacement >= maxDisplacement) {
             stopSimulation();
@@ -352,7 +373,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 frictionAngle,
                 normalStress: safeNormalStress,
                 saturation,
-                speed
+                speed,
+                durationHours: simulationDurationHours
             },
             latest: {
                 displacement: safeDisplacement,
@@ -361,7 +383,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 shearForce: Number((safeStress * 1000).toFixed(0))
             },
             stressStrainPoints: chartData.points,
-            mohrEnvelope: window.mohrChart?.data?.datasets?.[0]?.data || []
+            mohrEnvelope: window.mohrChart?.data?.datasets?.[0]?.data || [],
+            consolidationPoints: window.consolidationChart?.data?.datasets?.[0]?.data || [],
+            dataTable: getTableDataFromDOM()
         };
 
         try {
@@ -426,6 +450,83 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+
+    function createDataRow(values = {}) {
+        const tbody = document.getElementById('simulationDataBody');
+        if (!tbody) return;
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><input type="number" data-field="time" min="0" step="0.1" value="${values.time ?? ''}"></td>
+            <td><input type="number" data-field="load" min="0" step="0.1" value="${values.load ?? ''}"></td>
+            <td><input type="number" data-field="horizontal" min="0" step="0.01" value="${values.horizontal ?? ''}"></td>
+            <td><input type="number" data-field="vertical" step="0.01" value="${values.vertical ?? ''}"></td>
+            <td><button type="button" class="remove-row-btn"><i class="fas fa-times"></i></button></td>
+        `;
+
+        row.querySelectorAll('input').forEach((input) => {
+            input.addEventListener('input', syncChartsFromTable);
+        });
+
+        row.querySelector('.remove-row-btn').addEventListener('click', () => {
+            row.remove();
+            syncChartsFromTable();
+        });
+
+        tbody.appendChild(row);
+    }
+
+    function setupSimulationTable() {
+        const addBtn = document.getElementById('addDataRowBtn');
+        const clearBtn = document.getElementById('clearDataRowsBtn');
+        const durationSelect = document.getElementById('duration');
+
+        defaultTableRows.forEach((row) => createDataRow(row));
+
+        addBtn?.addEventListener('click', () => createDataRow());
+        clearBtn?.addEventListener('click', () => {
+            const tbody = document.getElementById('simulationDataBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            createDataRow();
+            syncChartsFromTable();
+        });
+
+        durationSelect?.addEventListener('change', () => {
+            updateControlValues();
+            syncChartsFromTable();
+        });
+
+        syncChartsFromTable();
+    }
+
+    function syncChartsFromTable() {
+        const rawData = getTableDataFromDOM();
+        const validData = rawData
+            .filter((row) => Number.isFinite(row.time) && Number.isFinite(row.load) && Number.isFinite(row.horizontal) && Number.isFinite(row.vertical))
+            .sort((a, b) => a.horizontal - b.horizontal);
+
+        chartData.points = validData.map((row) => ({ x: row.horizontal, y: row.load }));
+
+        if (window.shearChart) {
+            window.shearChart.data.datasets[0].data = chartData.points;
+            window.shearChart.update();
+        }
+
+        if (window.consolidationChart) {
+            window.consolidationChart.data.datasets[0].data = validData.map((row) => ({ x: row.time, y: row.vertical }));
+            window.consolidationChart.options.scales.x.max = simulationDurationHours;
+            window.consolidationChart.update();
+        }
+
+        if (window.mohrChart) {
+            updateMohrChart();
+        }
+
+        saveSimulationSnapshot();
+        saveResultsToStorage(calculateShearStress());
+    }
+
     // Control de la simulación
     function startSimulation() {
         if (isRunning) return;
@@ -518,8 +619,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function initCharts() {
         const chartCanvas = document.getElementById('chartCanvas');
         const mohrCanvas = document.getElementById('mohrCanvas');
+        const consolidationCanvas = document.getElementById('consolidationCanvas');
         
-        if (!chartCanvas || !mohrCanvas) {
+        if (!chartCanvas || !mohrCanvas || !consolidationCanvas) {
             console.error('No se encontraron los canvas de gráficos');
             return;
         }
@@ -528,6 +630,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // al entrar en la pestaña de simulación.
         chartCanvas.style.height = '250px';
         mohrCanvas.style.height = '250px';
+        consolidationCanvas.style.height = '250px';
         
         // Gráfico de esfuerzo-deformación - CONFIGURACIÓN CORREGIDA CON LÍMITES FIJOS
         const chartCtx = chartCanvas.getContext('2d');
@@ -690,6 +793,40 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
+        const consolidationCtx = consolidationCanvas.getContext('2d');
+        window.consolidationChart = new Chart(consolidationCtx, {
+            type: 'line',
+            data: {
+                datasets: [{
+                    label: 'Desplazamiento Vertical (mm)',
+                    data: [],
+                    borderColor: '#16a085',
+                    backgroundColor: 'rgba(22, 160, 133, 0.1)',
+                    fill: true,
+                    tension: 0.25,
+                    parsing: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 1.6,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        title: { display: true, text: 'Tiempo (h)' },
+                        min: 0,
+                        max: simulationDurationHours,
+                        ticks: { stepSize: 2 }
+                    },
+                    y: {
+                        title: { display: true, text: 'Desplazamiento Vertical (mm)' },
+                        min: 0
+                    }
+                }
+            }
+        });
+
         // Actualizar gráfico de Mohr con la línea inicial
         updateMohrChart();
     }
@@ -720,6 +857,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Inicializar
     updateControlValues();
     initCharts();
+    setupSimulationTable();
     drawMachine();
     
     console.log('Simulación inicializada correctamente');
