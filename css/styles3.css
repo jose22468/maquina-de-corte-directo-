@@ -634,3 +634,65 @@ tr:hover {
         height: 200px !important;
     }
 }
+
+/* ===== ESTILOS PARA TABLA DE DATOS EN SIMULACIÓN ===== */
+.data-table-section {
+    background: #ffffff;
+    border: 1px solid #dce3ea;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.data-table-section p {
+    margin-bottom: 0.75rem;
+}
+
+.table-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.data-table-wrapper {
+    overflow-x: auto;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 720px;
+}
+
+.data-table th,
+.data-table td {
+    border: 1px solid #dfe6ee;
+    padding: 0.5rem;
+    text-align: center;
+}
+
+.data-table th {
+    background: #f0f5fa;
+    color: var(--humboldt-blue);
+}
+
+.data-table input {
+    width: 100%;
+    padding: 0.35rem;
+    border: 1px solid #ccd6e2;
+    border-radius: 4px;
+}
+
+.remove-row-btn {
+    min-width: auto;
+    padding: 0.45rem 0.65rem;
+    background: #c0392b;
+}
+
+#durationInfo {
+    display: block;
+    margin-top: 0.4rem;
+    color: #4f5d6b;
+    font-size: 0.85rem;
+}
