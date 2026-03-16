@@ -499,6 +499,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             localStorage.removeItem(RESULTS_STORAGE_KEY);
             localStorage.removeItem(SIMULATION_STORAGE_KEY);
+            localStorage.removeItem(RUNS_STORAGE_KEY);
         } catch (error) {
             console.warn('No se pudo limpiar resultados:', error);
         }
@@ -733,13 +734,19 @@ document.addEventListener('DOMContentLoaded', function() {
             refreshHistoricalDatasets();
             window.consolidationChart.update();
         }
+        if (window.mohrChart) {
+            window.mohrChart.data.datasets[0].data = [];
+            window.mohrChart.data.datasets[1].data = [];
+            window.mohrChart.update();
+        }
 
-        document.getElementById('shearStrength').textContent = '-';
-        document.getElementById('horizontalDeformation').textContent = '-';
-        document.getElementById('verticalDeformation').textContent = '-';
-        document.getElementById('shearForce').textContent = '-';
+        document.getElementById('shearStrength').textContent = '0.00';
+        document.getElementById('horizontalDeformation').textContent = '0.00';
+        document.getElementById('verticalDeformation').textContent = '0.000';
+        document.getElementById('shearForce').textContent = '0';
 
         clearResultsStorage();
+        renderRunSummary();
         drawMachine();
     }
 
