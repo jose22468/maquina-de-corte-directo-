@@ -697,3 +697,46 @@ tr:hover {
     color: #4f5d6b;
     font-size: 0.85rem;
 }
+
+/* ===== BLOQUES EDUCATIVOS ===== */
+.edu-banner {
+    margin: 1.5rem 0 2rem;
+    padding: 1.2rem 1.35rem;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #eff7ff 0%, #f8fcff 100%);
+    border: 1px solid #c8dcf8;
+    box-shadow: 0 5px 14px rgba(24, 64, 125, 0.08);
+}
+
+.edu-banner h3 {
+    margin: 0 0 0.65rem 0;
+    color: var(--humboldt-blue);
+}
+
+.edu-pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-bottom: 0.7rem;
+}
+
+.edu-pill {
+    background: #fff;
+    border: 1px solid #bfd7f6;
+    color: #173b63;
+    border-radius: 999px;
+    padding: 0.35rem 0.72rem;
+    font-size: 0.88rem;
+}
+
+.edu-checklist {
+    margin: 0.35rem 0 0.65rem 1rem;
+}
+
+.edu-checklist li { margin-bottom: 0.25rem; }
+
+.edu-question {
+    font-style: italic;
+    color: #274a70;
+    margin-top: 0.45rem;
+}
