@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const RESULTS_STORAGE_KEY = 'directShearLastRun';
     const RUNS_STORAGE_KEY = 'directShear:runs';
     const SIMULATION_STORAGE_KEY = 'directShear:lastSimulation';
+    const FAILURE_CRITERION_STORAGE_KEY = 'directShear:failureCriterion';
 
     const sampleDimensions = { lengthMm: 60, widthMm: 60 };
     const initialAreaMm2 = sampleDimensions.lengthMm * sampleDimensions.widthMm;
@@ -92,6 +93,49 @@ document.addEventListener('DOMContentLoaded', function() {
             console.warn('No se pudo leer colección de corridas:', error);
             return [];
         }
+    }
+
+
+    function getFailureCriterion() {
+        const raw = localStorage.getItem(FAILURE_CRITERION_STORAGE_KEY);
+        return raw === 'residual' ? 'residual' : 'peak';
+    }
+
+    function getFailurePoint(points, criterion = 'peak') {
+        const safePoints = Array.isArray(points)
+            ? points
+                .map((point) => ({ x: Number(point?.x), y: Number(point?.y) }))
+                .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
+            : [];
+        if (!safePoints.length) return null;
+
+        const peakPoint = safePoints.reduce((best, point) => (point.y > best.y ? point : best), safePoints[0]);
+        const tailPoints = safePoints.slice(-Math.min(5, safePoints.length));
+        const residual = tailPoints.reduce((acc, point) => acc + point.y, 0) / tailPoints.length;
+
+        if (criterion === 'residual') {
+            return { x: peakPoint.x, y: residual, peakPoint, residual };
+        }
+
+        return { x: peakPoint.x, y: peakPoint.y, peakPoint, residual };
+    }
+
+    function fitFailureEnvelope(points) {
+        if (!Array.isArray(points) || points.length < 2) return null;
+
+        const n = points.length;
+        const sumX = points.reduce((acc, point) => acc + point.x, 0);
+        const sumY = points.reduce((acc, point) => acc + point.y, 0);
+        const sumXY = points.reduce((acc, point) => acc + point.x * point.y, 0);
+        const sumX2 = points.reduce((acc, point) => acc + point.x * point.x, 0);
+        const denominator = n * sumX2 - sumX * sumX;
+
+        if (!Number.isFinite(denominator) || Math.abs(denominator) < Number.EPSILON) return null;
+
+        const slope = (n * sumXY - sumX * sumY) / denominator;
+        const intercept = (sumY - slope * sumX) / n;
+
+        return { slope, intercept };
     }
 
     function setPhase(phase) {
@@ -347,18 +391,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function computeRunSummary() {
         if (!chartData.points.length) return null;
-        const peakPoint = chartData.points.reduce((best, point) => (point.y > best.y ? point : best), chartData.points[0]);
-        const tailPoints = chartData.points.slice(-Math.min(5, chartData.points.length));
-        const residual = tailPoints.reduce((acc, point) => acc + point.y, 0) / tailPoints.length;
+        const criterion = getFailureCriterion();
+        const failureData = getFailurePoint(chartData.points, criterion);
+        if (!failureData) return null;
         return {
             runId: `run-${Date.now()}`,
             timestamp: new Date().toISOString(),
             soilType,
             normalStress,
             speed,
-            peakShear: Number(peakPoint.y.toFixed(3)),
-            displacementAtPeak: Number(peakPoint.x.toFixed(3)),
-            residualShear: Number(residual.toFixed(3)),
+            failureCriterion: criterion,
+            peakShear: Number(failureData.peakPoint.y.toFixed(3)),
+            displacementAtPeak: Number(failureData.peakPoint.x.toFixed(3)),
+            residualShear: Number(failureData.residual.toFixed(3)),
+            failureShear: Number(failureData.y.toFixed(3)),
             points: chartData.points,
             consolidationPoints: chartData.consolidationPoints,
             tableData: getTableDataFromDOM(),
@@ -435,7 +481,9 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             phase: simulationData.phase,
             stressStrainPoints: chartData.points,
-            mohrEnvelope: window.mohrChart?.data?.datasets?.[0]?.data || [],
+            mohrEnvelope: window.mohrChart?.data?.datasets?.[1]?.data || [],
+            failurePoints: window.mohrChart?.data?.datasets?.[0]?.data || [],
+            failureCriterion: getFailureCriterion(),
             consolidationPoints: chartData.consolidationPoints,
             runs: getRunCollection(),
             dataTable: getTableDataFromDOM()
@@ -722,7 +770,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         window.mohrChart = new Chart(mohrCanvas.getContext('2d'), {
             type: 'scatter',
-            data: { datasets: [{ label: 'Envolvente de Falla', data: [], borderColor: '#e74c3c', backgroundColor: 'rgba(231, 76, 60, 0.1)', showLine: true, fill: false, borderWidth: 2, pointRadius: 0 }] },
+            data: { datasets: [
+                { label: 'Puntos experimentales', data: [], borderColor: '#1e3c72', backgroundColor: '#1e3c72', showLine: false, pointRadius: 5 },
+                { label: 'Envolvente ajustada', data: [], borderColor: '#e74c3c', backgroundColor: 'rgba(231, 76, 60, 0.1)', showLine: true, fill: false, borderWidth: 2, pointRadius: 0 }
+            ] },
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
@@ -746,9 +797,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateMohrChart() {
         if (!window.mohrChart) return;
-        const frictionRad = (frictionAngle * Math.PI) / 180;
-        const data = [0, 100, 200, 300, 400].map((x) => ({ x, y: cohesion + x * Math.tan(frictionRad) }));
-        window.mohrChart.data.datasets[0].data = data;
+
+        const criterion = getFailureCriterion();
+        const runs = getRunCollection();
+        const validRuns = runs
+            .map((run) => {
+                const failure = getFailurePoint(run?.points, criterion);
+                const sigma = Number(run?.normalStress);
+                if (!failure || !Number.isFinite(sigma)) return null;
+                return { x: sigma, y: failure.y };
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.x - b.x);
+
+        const fit = fitFailureEnvelope(validRuns);
+        const maxSigma = Math.max(400, ...validRuns.map((point) => point.x));
+        const line = fit
+            ? [{ x: 0, y: fit.intercept }, { x: maxSigma, y: fit.intercept + fit.slope * maxSigma }]
+            : [];
+
+        window.mohrChart.data.datasets[0].data = validRuns;
+        window.mohrChart.data.datasets[1].data = line;
         window.mohrChart.update();
     }
 
