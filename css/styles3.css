@@ -422,7 +422,7 @@
 
 .chart-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 1.5rem;
 }
 
@@ -434,9 +434,10 @@
 }
 
 .chart-item canvas {
-    width: 400px !important;
-    height: 250px !important;
+    width: min(100%, 760px) !important;
+    height: 430px !important;
     max-width: 100%;
+    image-rendering: auto;
 }
 
 .chart-title {
@@ -631,7 +632,7 @@ tr:hover {
     
     .chart-item canvas {
         width: 100% !important;
-        height: 200px !important;
+        height: 300px !important;
     }
 }
 
