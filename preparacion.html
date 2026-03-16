@@ -175,6 +175,147 @@
             </div>
 
             <!-- Important Notice -->
+            <div class="checklist-section">
+                <h2>Checklist Pre-ensayo</h2>
+                <p class="section-subtitle">Complete todos los pasos obligatorios antes de iniciar cada corrida del ensayo.</p>
+
+                <div class="method-card">
+                    <h3>1. Identificación de muestra</h3>
+                    <ul class="method-features">
+                        <li><input type="checkbox" id="id-muestra"> <label for="id-muestra">Registrar ID de muestra.</label></li>
+                        <li><input type="checkbox" id="profundidad"> <label for="profundidad">Anotar profundidad de extracción.</label></li>
+                        <li><input type="checkbox" id="fecha-operador"> <label for="fecha-operador">Completar fecha y operador responsable.</label></li>
+                        <li><input type="checkbox" id="tipo-suelo"> <label for="tipo-suelo">Clasificar tipo de suelo (USCS).</label></li>
+                        <li><input type="checkbox" id="condicion"> <label for="condicion">Definir condición: natural o remoldeada.</label></li>
+                        <li><input type="checkbox" id="humedad-inicial"> <label for="humedad-inicial">Registrar humedad inicial.</label></li>
+                    </ul>
+                </div>
+
+                <div class="method-card">
+                    <h3>2. Geometría y masa</h3>
+                    <ul class="method-features">
+                        <li><input type="checkbox" id="diametro-caja"> <label for="diametro-caja">Medir diámetro/ancho de la caja de corte.</label></li>
+                        <li><input type="checkbox" id="altura-inicial"> <label for="altura-inicial">Medir altura inicial de la probeta.</label></li>
+                        <li><input type="checkbox" id="masa-humeda"> <label for="masa-humeda">Pesar masa húmeda inicial.</label></li>
+                        <li><input type="checkbox" id="densidad-humeda"> <label for="densidad-humeda">Calcular densidad húmeda.</label></li>
+                        <li><input type="checkbox" id="densidad-seca"> <label for="densidad-seca">Calcular densidad seca.</label></li>
+                    </ul>
+                </div>
+
+                <div class="method-card">
+                    <h3>3. Montaje de caja de corte</h3>
+                    <ul class="method-features">
+                        <li><input type="checkbox" id="piedras-porosas"> <label for="piedras-porosas">Verificar estado y limpieza de piedras porosas.</label></li>
+                        <li><input type="checkbox" id="papel-filtro"> <label for="papel-filtro">Instalar papel filtro correctamente.</label></li>
+                        <li><input type="checkbox" id="alineacion"> <label for="alineacion">Confirmar alineación de mitades de la caja.</label></li>
+                        <li><input type="checkbox" id="cero-instrumentos"> <label for="cero-instrumentos">Ajustar cero de deformímetros y celdas de carga.</label></li>
+                    </ul>
+                </div>
+
+                <div class="method-card">
+                    <h3>4. Consolidación</h3>
+                    <ul class="method-features">
+                        <li><input type="checkbox" id="esfuerzo-objetivo"> <label for="esfuerzo-objetivo">Seleccionar esfuerzo normal objetivo.</label></li>
+                        <li><input type="checkbox" id="tiempo-consolidacion"> <label for="tiempo-consolidacion">Definir y registrar tiempo de consolidación.</label></li>
+                        <li><input type="checkbox" id="fin-consolidacion"> <label for="fin-consolidacion">Confirmar criterio de fin por lecturas estables.</label></li>
+                    </ul>
+                </div>
+
+                <div class="method-card">
+                    <h3>5. Criterios de aceptación</h3>
+                    <ul class="method-features">
+                        <li><input type="checkbox" id="tolerancias"> <label for="tolerancias">Verificar tolerancias de altura y masa.</label></li>
+                        <li><input type="checkbox" id="repetibilidad"> <label for="repetibilidad">Comprobar repetibilidad mínima entre corridas.</label></li>
+                        <li><input type="checkbox" id="invalidacion"> <label for="invalidacion">Documentar criterios para invalidar ensayo si no cumple.</label></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="checklist-section">
+                <h2>Hoja de registro</h2>
+                <p class="section-subtitle">Tabla editable para consolidar los datos clave de cada probeta preparada.</p>
+                <div class="table-container" style="overflow-x: auto;">
+                    <table class="results-table" border="1" cellspacing="0" cellpadding="8" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th>Probeta</th>
+                                <th>ID</th>
+                                <th>Prof. (m)</th>
+                                <th>USCS</th>
+                                <th>Condición</th>
+                                <th>w inicial (%)</th>
+                                <th>Ø/Ancho (mm)</th>
+                                <th>Altura (mm)</th>
+                                <th>Masa húmeda (g)</th>
+                                <th>ρ húmeda (g/cm³)</th>
+                                <th>ρ seca (g/cm³)</th>
+                                <th>σn objetivo (kPa)</th>
+                                <th>t consolidación (min)</th>
+                                <th>Criterio fin</th>
+                                <th>¿Aceptada?</th>
+                                <th>Observaciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td contenteditable="true">1</td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true">Sí/No</td>
+                                <td contenteditable="true"></td>
+                            </tr>
+                            <tr>
+                                <td contenteditable="true">2</td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true">Sí/No</td>
+                                <td contenteditable="true"></td>
+                            </tr>
+                            <tr>
+                                <td contenteditable="true">3</td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true"></td>
+                                <td contenteditable="true">Sí/No</td>
+                                <td contenteditable="true"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <div class="notice-section">
                 <div class="notice-card">
                     <div class="notice-header">
