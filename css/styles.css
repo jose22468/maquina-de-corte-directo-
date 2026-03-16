@@ -11,6 +11,9 @@
     --warning-color: #f39c12;
     --gold-color: #FFD700;
     --bronze-color: #CD7F32;
+    --tech-cyan: #35d6ff;
+    --agro-green: #5fbf5f;
+    --soil-amber: #c98c3a;
 }
 
 * {
@@ -21,7 +24,11 @@
 }
 
 body {
-    background: linear-gradient(135deg, #1a2a3a, #2c3e50);
+    background:
+        radial-gradient(circle at 15% 10%, rgba(53, 214, 255, 0.14) 0%, transparent 34%),
+        radial-gradient(circle at 85% 20%, rgba(95, 191, 95, 0.16) 0%, transparent 36%),
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 45px),
+        linear-gradient(135deg, #0f2434 0%, #17354a 45%, #1f3e33 100%);
     color: #333;
     line-height: 1.6;
     min-height: 100vh;
@@ -30,13 +37,15 @@ body {
 }
 
 header {
-    background: linear-gradient(135deg, var(--humboldt-blue), #1a5276);
+    background:
+        linear-gradient(120deg, rgba(53,214,255,0.18), rgba(95,191,95,0.12)),
+        linear-gradient(135deg, #004a79, #1a5276 55%, #2f6d3a);
     color: white;
     padding: 1.2rem;
     text-align: center;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     position: relative;
-    border-bottom: 3px solid var(--gold-color);
+    border-bottom: 3px solid var(--agro-green);
 }
 
 .logo-container {
@@ -56,8 +65,8 @@ header {
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border: 2px solid rgba(53, 214, 255, 0.6);
+    box-shadow: 0 0 20px rgba(53, 214, 255, 0.28), 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .branding h1 {
@@ -79,7 +88,8 @@ header {
 }
 
 nav {
-    background: rgba(0, 0, 0, 0.25);
+    background:
+        linear-gradient(90deg, rgba(12, 37, 57, 0.88), rgba(22, 54, 43, 0.88));
     padding: 0.7rem;
     position: sticky;
     top: 0;
@@ -108,7 +118,7 @@ nav ul li a {
     display: flex;
     align-items: center;
     border: 1px solid transparent;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
 }
 
 nav ul li a i {
@@ -116,15 +126,15 @@ nav ul li a i {
 }
 
 nav ul li a:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(53, 214, 255, 0.2);
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0 20px rgba(53, 214, 255, 0.28), 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 nav ul li a.active {
-    background: rgba(255, 255, 255, 0.25);
-    border: 1px solid var(--gold-color);
-    box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    background: rgba(95, 191, 95, 0.25);
+    border: 1px solid var(--agro-green);
+    box-shadow: 0 0 12px rgba(95, 191, 95, 0.35);
 }
 
 .container {
@@ -137,11 +147,13 @@ nav ul li a.active {
 }
 
 .section {
-    background: rgba(255, 255, 255, 0.95);
+    background:
+        linear-gradient(155deg, rgba(255,255,255,0.97) 0%, rgba(245,252,255,0.97) 55%, rgba(246,255,245,0.96) 100%);
     border-radius: 12px;
     padding: 2rem;
     margin-bottom: 1.5rem;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(53, 214, 255, 0.22);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
     display: block;
     flex: 1;
     display: flex;
@@ -166,12 +178,12 @@ p {
 }
 
 .feature {
-    background: rgba(255, 255, 255, 0.9);
+    background: linear-gradient(150deg, #ffffff, #f4fbff 55%, #f4fff4);
     border-radius: 10px;
     padding: 1.5rem;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     transition: transform 0.3s ease;
-    border-left: 4px solid var(--humboldt-blue);
+    border-left: 4px solid var(--agro-green);
 }
 
 .feature:hover {
@@ -187,7 +199,7 @@ p {
 
 .feature h3 i {
     margin-right: 10px;
-    color: var(--gold-color);
+    color: var(--soil-amber);
 }
 
 .feature p {
@@ -205,8 +217,9 @@ p {
 button, .button-link button {
     padding: 0.75rem 1.5rem;
     border: none;
-    border-radius: 4px;
-    background-color: var(--secondary-color);
+    border-radius: 8px;
+    border: 1px solid rgba(53,214,255,0.4);
+    background: linear-gradient(135deg, #1282b8, #2f9c6a);
     color: white;
     cursor: pointer;
     transition: background-color 0.3s, transform 0.3s;
@@ -218,7 +231,7 @@ button, .button-link button {
 }
 
 button:hover, .button-link button:hover {
-    background-color: #2980b9;
+    background: linear-gradient(135deg, #0f6f9d, #2a8559);
     transform: translateY(-2px);
 }
 
@@ -227,11 +240,11 @@ button i, .button-link button i {
 }
 
 footer {
-    background: linear-gradient(135deg, #1a2a3a, #2c3e50);
+    background: linear-gradient(135deg, #102739, #1a3c54 55%, #244832 100%);
     color: white;
     padding: 1.5rem 0;
     margin-top: 2rem;
-    border-top: 2px solid var(--gold-color);
+    border-top: 2px solid var(--agro-green);
 }
 
 .footer-content {
@@ -244,7 +257,7 @@ footer {
 }
 
 .footer-section h4 {
-    color: var(--gold-color);
+    color: #95e7ff;
     margin-bottom: 1rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding-bottom: 0.5rem;

@@ -127,16 +127,27 @@
             <h2>Análisis de Resultados</h2>
             <p>Interprete los resultados del ensayo de corte directo y determine los parámetros de resistencia al corte del suelo.</p>
 
+
+            <div class="edu-banner results-edu">
+                <h3><i class="fas fa-book-open"></i> Lectura educativa de resultados</h3>
+                <div class="edu-pill-row">
+                    <span class="edu-pill">Observa el <strong>pico</strong> de cada curva</span>
+                    <span class="edu-pill">Compara con el valor <strong>residual</strong></span>
+                    <span class="edu-pill">Interpreta <strong>c</strong> y <strong>φ</strong> con R²</span>
+                </div>
+                <p>Consejo: si tienes menos de 3 corridas válidas, usa los parámetros solo como referencia preliminar.</p>
+            </div>
+
             <div class="results-container">
                 <div class="results-charts">
                     <h3>Gráficos de Resultados</h3>
                     <div class="chart-row">
                         <div class="chart-item">
-                            <canvas id="stressStrainChart" width="400" height="250"></canvas>
+                            <canvas id="stressStrainChart" width="900" height="520"></canvas>
                             <p class="chart-title">Esfuerzo de Corte vs. Deformación</p>
                         </div>
                         <div class="chart-item">
-                            <canvas id="failureEnvelopeChart" width="400" height="250"></canvas>
+                            <canvas id="failureEnvelopeChart" width="900" height="520"></canvas>
                             <p class="chart-title">Envolvente de Falla</p>
                         </div>
                     </div>
@@ -291,6 +302,7 @@
         const RUNS_STORAGE_KEY = 'directShear:runs';
         const FAILURE_CRITERION_STORAGE_KEY = 'directShear:failureCriterion';
         const REPORT_METADATA_STORAGE_KEY = 'directShear:reportMetadata';
+        const PREPARATION_STORAGE_KEY = 'directShear:preparationSheet';
 
         function getReportMetadata() {
             try {
@@ -312,6 +324,25 @@
                 localStorage.setItem(REPORT_METADATA_STORAGE_KEY, JSON.stringify(metadata));
             } catch (error) {
                 console.warn('No se pudo guardar metadata de reporte:', error);
+            }
+        }
+
+
+        function getPreparationSheet() {
+            try {
+                const raw = localStorage.getItem(PREPARATION_STORAGE_KEY);
+                const parsed = raw ? JSON.parse(raw) : null;
+                if (!parsed || !Array.isArray(parsed.rows)) {
+                    return { headers: [], rows: [], updatedAt: null };
+                }
+                return {
+                    headers: Array.isArray(parsed.headers) ? parsed.headers : [],
+                    rows: parsed.rows,
+                    updatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : null
+                };
+            } catch (error) {
+                console.warn('No se pudo leer hoja de preparación:', error);
+                return { headers: [], rows: [], updatedAt: null };
             }
         }
 
@@ -356,7 +387,7 @@
             return 'Para suelos mixtos, reporte pico y residual; use pico en verificación inicial y residual en condición post-falla.';
         }
 
-        function buildExportPayload(runs, analysis, metadata) {
+        function buildExportPayload(runs, analysis, metadata, preparationSheet) {
             return {
                 exportTimestamp: new Date().toISOString(),
                 metadata,
@@ -365,7 +396,8 @@
                 maxShear: analysis.maxShear,
                 fit: analysis.fit,
                 metrics: analysis.metrics,
-                runs
+                runs,
+                preparationSheet
             };
         }
 
@@ -574,7 +606,8 @@
             exportJsonBtn.addEventListener('click', () => {
                 const metadata = validateBeforeExport();
                 if (!metadata) return;
-                const payload = buildExportPayload(runs, analysis, metadata);
+                const preparationSheet = getPreparationSheet();
+                const payload = buildExportPayload(runs, analysis, metadata, preparationSheet);
                 const stamp = metadata.testDate || new Date().toISOString().slice(0, 10);
                 downloadFile(JSON.stringify(payload, null, 2), `ensayo-corte-directo-${stamp}.json`, 'application/json;charset=utf-8');
             });
@@ -595,9 +628,22 @@
                     item.residualShear,
                     item.failureShear
                 ]);
-                const csv = [header, ...rows]
-                    .map((row) => row.map(escapeCsvValue).join(','))
-                    .join('\n');
+                const preparationSheet = getPreparationSheet();
+                const csvLines = [header, ...rows]
+                    .map((row) => row.map(escapeCsvValue).join(','));
+
+                if (preparationSheet.rows.length) {
+                    csvLines.push('');
+                    csvLines.push('Hoja de preparación');
+                    if (preparationSheet.headers.length) {
+                        csvLines.push(preparationSheet.headers.map(escapeCsvValue).join(','));
+                    }
+                    preparationSheet.rows.forEach((row) => {
+                        csvLines.push((Array.isArray(row) ? row : []).map(escapeCsvValue).join(','));
+                    });
+                }
+
+                const csv = csvLines.join('\n');
                 const stamp = metadata.testDate || new Date().toISOString().slice(0, 10);
                 downloadFile(csv, `tabla-resultados-corte-directo-${stamp}.csv`, 'text/csv;charset=utf-8');
             });
@@ -605,6 +651,22 @@
             printReportBtn.addEventListener('click', () => {
                 window.print();
             });
+
+            const chartTextOptions = {
+                color: '#1f2d3d',
+                font: { size: 14, weight: '600' }
+            };
+
+            const chartCommonPlugins = {
+                legend: {
+                    labels: {
+                        color: '#1f2d3d',
+                        font: { size: 13 }
+                    }
+                }
+            };
+
+            const chartDpi = Math.max(2, window.devicePixelRatio || 1);
 
             const datasets = runs
                 .map((run, idx) => {
@@ -645,20 +707,26 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        devicePixelRatio: chartDpi,
+                        plugins: chartCommonPlugins,
                         scales: {
                             x: {
                                 type: 'linear',
                                 title: {
                                     display: true,
-                                    text: 'Desplazamiento Horizontal (mm)'
+                                    text: 'Desplazamiento Horizontal (mm)',
+                                    ...chartTextOptions
                                 },
+                                ticks: chartTextOptions,
                                 beginAtZero: true
                             },
                             y: {
                                 title: {
                                     display: true,
-                                    text: 'Esfuerzo de Corte (kPa)'
+                                    text: 'Esfuerzo de Corte (kPa)',
+                                    ...chartTextOptions
                                 },
+                                ticks: chartTextOptions,
                                 beginAtZero: true,
                                 min: 0,
                                 max: 400
@@ -695,20 +763,26 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        devicePixelRatio: chartDpi,
+                        plugins: chartCommonPlugins,
                         scales: {
                             x: {
                                 title: {
                                     display: true,
-                                    text: 'Esfuerzo Normal (kPa)'
+                                    text: 'Esfuerzo Normal (kPa)',
+                                    ...chartTextOptions
                                 },
+                                ticks: chartTextOptions,
                                 beginAtZero: true,
                                 max: 450
                             },
                             y: {
                                 title: {
                                     display: true,
-                                    text: 'Resistencia al Corte (kPa)'
+                                    text: 'Resistencia al Corte (kPa)',
+                                    ...chartTextOptions
                                 },
+                                ticks: chartTextOptions,
                                 beginAtZero: true,
                                 max: 300
                             }
