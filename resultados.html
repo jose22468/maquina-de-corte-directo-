@@ -7,6 +7,94 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/styles3.css">
+    <style>
+        .report-tools,
+        .metadata-panel,
+        .conclusion-panel {
+            margin-top: 1.2rem;
+            padding: 1rem;
+            border: 1px solid #d9e2ec;
+            border-radius: 10px;
+            background: #f8fbff;
+        }
+
+        .tool-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+        }
+
+        .tool-buttons button {
+            border: none;
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            background: #1e3c72;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .tool-buttons button.secondary {
+            background: #3c4b5e;
+        }
+
+        .tool-buttons button:hover {
+            filter: brightness(1.08);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+        }
+
+        .form-grid label {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            font-weight: 600;
+            color: #2e3a47;
+        }
+
+        .form-grid input,
+        .form-grid select {
+            border: 1px solid #bbc8d6;
+            border-radius: 6px;
+            padding: 0.45rem 0.55rem;
+            font: inherit;
+            color: #243244;
+        }
+
+        .validation-message {
+            margin-top: 0.75rem;
+            font-weight: 600;
+            color: #b3261e;
+            display: none;
+        }
+
+        @media print {
+            nav,
+            footer,
+            .report-tools .tool-buttons {
+                display: none !important;
+            }
+
+            .container,
+            .section,
+            .results-container,
+            .results-charts,
+            .results-data {
+                width: 100%;
+                max-width: 100%;
+            }
+
+            body {
+                background: #fff;
+            }
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -110,6 +198,47 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <div class="metadata-panel" id="metadataPanel">
+                        <h4>Trazabilidad del ensayo</h4>
+                        <p>Complete los metadatos para incluirlos en la exportación de resultados.</p>
+                        <div class="form-grid">
+                            <label for="sampleIdInput">ID muestra
+                                <input id="sampleIdInput" type="text" placeholder="Ej: M-2026-017">
+                            </label>
+                            <label for="testDateInput">Fecha
+                                <input id="testDateInput" type="date">
+                            </label>
+                            <label for="operatorInput">Operador
+                                <input id="operatorInput" type="text" placeholder="Nombre responsable">
+                            </label>
+                            <label for="standardInput">Norma
+                                <select id="standardInput">
+                                    <option value="">Seleccione…</option>
+                                    <option value="ASTM D3080">ASTM D3080</option>
+                                    <option value="AASHTO T236">AASHTO T236</option>
+                                    <option value="BS 1377.7">BS 1377.7</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="conclusion-panel" id="conclusionPanel">
+                        <h4>Conclusión del ensayo</h4>
+                        <p id="conclusionBehavior">Tipo de comportamiento: --</p>
+                        <p id="conclusionRecommendation">Recomendación de parámetros: --</p>
+                    </div>
+
+                    <div class="report-tools" id="reportSection">
+                        <h4>Exportación y reporte</h4>
+                        <p>Exporte los resultados o genere una vista imprimible.</p>
+                        <div class="tool-buttons">
+                            <button id="exportJsonBtn" type="button"><i class="fas fa-file-code"></i> Exportar JSON</button>
+                            <button id="exportCsvBtn" type="button"><i class="fas fa-file-csv"></i> Exportar CSV</button>
+                            <button id="printReportBtn" class="secondary" type="button"><i class="fas fa-print"></i> Vista reporte</button>
+                        </div>
+                        <p id="validationMessage" class="validation-message"></p>
+                    </div>
                 </div>
             </div>
 
@@ -161,6 +290,94 @@
     <script>
         const RUNS_STORAGE_KEY = 'directShear:runs';
         const FAILURE_CRITERION_STORAGE_KEY = 'directShear:failureCriterion';
+        const REPORT_METADATA_STORAGE_KEY = 'directShear:reportMetadata';
+
+        function getReportMetadata() {
+            try {
+                const raw = localStorage.getItem(REPORT_METADATA_STORAGE_KEY);
+                const parsed = raw ? JSON.parse(raw) : {};
+                return {
+                    sampleId: typeof parsed.sampleId === 'string' ? parsed.sampleId : '',
+                    testDate: typeof parsed.testDate === 'string' ? parsed.testDate : '',
+                    operator: typeof parsed.operator === 'string' ? parsed.operator : '',
+                    standard: typeof parsed.standard === 'string' ? parsed.standard : ''
+                };
+            } catch (error) {
+                return { sampleId: '', testDate: '', operator: '', standard: '' };
+            }
+        }
+
+        function saveReportMetadata(metadata) {
+            try {
+                localStorage.setItem(REPORT_METADATA_STORAGE_KEY, JSON.stringify(metadata));
+            } catch (error) {
+                console.warn('No se pudo guardar metadata de reporte:', error);
+            }
+        }
+
+        function downloadFile(content, fileName, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function escapeCsvValue(value) {
+            const safeValue = value == null ? '' : String(value);
+            if (safeValue.includes(',') || safeValue.includes('"') || safeValue.includes('\n')) {
+                return `"${safeValue.replace(/"/g, '""')}"`;
+            }
+            return safeValue;
+        }
+
+        function getBehaviorType(cohesion, friction) {
+            if (!Number.isFinite(cohesion) || !Number.isFinite(friction)) return 'indeterminado';
+            if (cohesion <= 12 && friction >= 28) return 'friccionante';
+            if (cohesion >= 25 && friction <= 20) return 'cohesivo';
+            return 'mixto';
+        }
+
+        function getParameterRecommendation(behavior, criterion) {
+            if (behavior === 'friccionante') {
+                return criterion === 'peak'
+                    ? 'Use parámetros de pico para diseño a corto plazo y estabilidad inicial.'
+                    : 'Prefiera parámetros residuales para deformaciones acumuladas o estado drenado avanzado.';
+            }
+            if (behavior === 'cohesivo') {
+                return criterion === 'peak'
+                    ? 'Validar parámetros de pico con controles de sensibilidad y dispersión de corridas.'
+                    : 'Para análisis conservador de largo plazo, priorice parámetros residuales.';
+            }
+            return 'Para suelos mixtos, reporte pico y residual; use pico en verificación inicial y residual en condición post-falla.';
+        }
+
+        function buildExportPayload(runs, analysis, metadata) {
+            return {
+                exportTimestamp: new Date().toISOString(),
+                metadata,
+                criterion: analysis.criterion,
+                validRuns: analysis.validRuns,
+                maxShear: analysis.maxShear,
+                fit: analysis.fit,
+                metrics: analysis.metrics,
+                runs
+            };
+        }
+
+        function validateCriticalData(runs, analysis, metadata) {
+            const missing = [];
+            if (!runs.length || !analysis.validRuns) missing.push('corridas válidas');
+            if (!metadata.sampleId) missing.push('ID de muestra');
+            if (!metadata.testDate) missing.push('fecha de ensayo');
+            if (!metadata.operator) missing.push('operador');
+            if (!metadata.standard) missing.push('norma seleccionada');
+            return missing;
+        }
 
         function toSafePoints(points) {
             return Array.isArray(points)
@@ -267,6 +484,7 @@
             const runs = getRunCollection();
             const criterion = getFailureCriterion();
             const analysis = computeFailureAnalysis(runs, criterion);
+            const metadataState = getReportMetadata();
 
             const tableBody = document.getElementById('resultsTableBody');
             tableBody.innerHTML = '';
@@ -286,19 +504,107 @@
             const cohesionValue = document.getElementById('cohesionValue');
             const frictionValue = document.getElementById('frictionAngleValue');
             const maxShearValue = document.getElementById('maxShearStressValue');
+            const sampleIdInput = document.getElementById('sampleIdInput');
+            const testDateInput = document.getElementById('testDateInput');
+            const operatorInput = document.getElementById('operatorInput');
+            const standardInput = document.getElementById('standardInput');
+            const validationMessage = document.getElementById('validationMessage');
+            const conclusionBehavior = document.getElementById('conclusionBehavior');
+            const conclusionRecommendation = document.getElementById('conclusionRecommendation');
+
+            sampleIdInput.value = metadataState.sampleId;
+            testDateInput.value = metadataState.testDate;
+            operatorInput.value = metadataState.operator;
+            standardInput.value = metadataState.standard;
+
+            const metadataInputs = [sampleIdInput, testDateInput, operatorInput, standardInput];
+            metadataInputs.forEach((input) => {
+                input.addEventListener('change', () => {
+                    saveReportMetadata({
+                        sampleId: sampleIdInput.value.trim(),
+                        testDate: testDateInput.value,
+                        operator: operatorInput.value.trim(),
+                        standard: standardInput.value
+                    });
+                });
+            });
 
             if (analysis.fit) {
                 const friction = Math.atan(analysis.fit.slope) * (180 / Math.PI);
                 cohesionValue.textContent = `${analysis.fit.intercept.toFixed(2)} kPa`;
                 frictionValue.textContent = `${friction.toFixed(2)}°`;
                 fitQuality.innerHTML = `<strong>Calidad de ajuste:</strong> R²: ${analysis.fit.r2.toFixed(4)} | Corridas válidas: ${analysis.validRuns} | Criterio: ${analysis.criterion}`;
+
+                const behavior = getBehaviorType(analysis.fit.intercept, friction);
+                conclusionBehavior.textContent = `Tipo de comportamiento: ${behavior}`;
+                conclusionRecommendation.textContent = `Recomendación de parámetros: ${getParameterRecommendation(behavior, analysis.criterion)}`;
             } else {
                 cohesionValue.textContent = '-- kPa';
                 frictionValue.textContent = '--°';
                 fitQuality.innerHTML = `<strong>Calidad de ajuste:</strong> R²: -- | Corridas válidas: ${analysis.validRuns} | Criterio: ${analysis.criterion}`;
+                conclusionBehavior.textContent = 'Tipo de comportamiento: indeterminado (faltan datos para ajustar c y φ).';
+                conclusionRecommendation.textContent = 'Recomendación de parámetros: complete al menos 3 corridas válidas para emitir una conclusión robusta.';
             }
             maxShearValue.textContent = `${analysis.maxShear.toFixed(2)} kPa`;
             warning.style.display = analysis.preliminary ? 'block' : 'none';
+
+            function validateBeforeExport() {
+                const metadata = {
+                    sampleId: sampleIdInput.value.trim(),
+                    testDate: testDateInput.value,
+                    operator: operatorInput.value.trim(),
+                    standard: standardInput.value
+                };
+                saveReportMetadata(metadata);
+                const missing = validateCriticalData(runs, analysis, metadata);
+                if (missing.length) {
+                    validationMessage.style.display = 'block';
+                    validationMessage.textContent = `⚠ Faltan datos críticos: ${missing.join(', ')}.`;
+                    return null;
+                }
+                validationMessage.style.display = 'none';
+                validationMessage.textContent = '';
+                return metadata;
+            }
+
+            const exportJsonBtn = document.getElementById('exportJsonBtn');
+            const exportCsvBtn = document.getElementById('exportCsvBtn');
+            const printReportBtn = document.getElementById('printReportBtn');
+
+            exportJsonBtn.addEventListener('click', () => {
+                const metadata = validateBeforeExport();
+                if (!metadata) return;
+                const payload = buildExportPayload(runs, analysis, metadata);
+                const stamp = metadata.testDate || new Date().toISOString().slice(0, 10);
+                downloadFile(JSON.stringify(payload, null, 2), `ensayo-corte-directo-${stamp}.json`, 'application/json;charset=utf-8');
+            });
+
+            exportCsvBtn.addEventListener('click', () => {
+                const metadata = validateBeforeExport();
+                if (!metadata) return;
+                const header = ['ID muestra', 'Fecha', 'Operador', 'Norma', 'Criterio', 'σn (kPa)', 'τ pico (kPa)', 'Despl. falla (mm)', 'τ residual (kPa)', 'τ usada (kPa)'];
+                const rows = analysis.metrics.map((item) => [
+                    metadata.sampleId,
+                    metadata.testDate,
+                    metadata.operator,
+                    metadata.standard,
+                    analysis.criterion,
+                    item.normalStress,
+                    item.peakShear,
+                    item.displacementAtPeak,
+                    item.residualShear,
+                    item.failureShear
+                ]);
+                const csv = [header, ...rows]
+                    .map((row) => row.map(escapeCsvValue).join(','))
+                    .join('\n');
+                const stamp = metadata.testDate || new Date().toISOString().slice(0, 10);
+                downloadFile(csv, `tabla-resultados-corte-directo-${stamp}.csv`, 'text/csv;charset=utf-8');
+            });
+
+            printReportBtn.addEventListener('click', () => {
+                window.print();
+            });
 
             const datasets = runs
                 .map((run, idx) => {
