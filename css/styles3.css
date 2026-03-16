@@ -740,3 +740,29 @@ tr:hover {
     color: #274a70;
     margin-top: 0.45rem;
 }
+
+/* ===== TEMA TECNO-AGRÍCOLA (SIMULACIÓN/RESULTADOS) ===== */
+.results-charts,
+.results-data,
+.interpretation,
+.data-table-section,
+.method-card,
+.step {
+    background: linear-gradient(145deg, #ffffff 0%, #f2faff 58%, #f2fff3 100%);
+    border: 1px solid rgba(53, 214, 255, 0.2);
+}
+
+.parameter-card {
+    background: linear-gradient(140deg, #f7fcff, #f2fff5);
+    border: 1px solid rgba(95, 191, 95, 0.25);
+}
+
+.parameter-icon {
+    box-shadow: 0 0 0 3px rgba(53,214,255,0.12);
+}
+
+.chart-title,
+.step-header,
+.section h2 {
+    color: #11405f;
+}
