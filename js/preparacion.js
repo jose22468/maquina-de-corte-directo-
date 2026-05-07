@@ -3,6 +3,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initializePreparationSimulation();
 });
 
+const PREPARATION_STATE_STORAGE_KEY = 'directShear:preparationState';
+
 function initializePreparationSheetPersistence() {
     const PREPARATION_STORAGE_KEY = 'directShear:preparationSheet';
     const table = document.querySelector('.checklist-section table');
@@ -111,6 +113,25 @@ function initializePreparationSimulation() {
         currentPhase: 'Listo para iniciar'
     };
 
+    function persistPreparationState(status = 'in-progress') {
+        const config = getInputConfig();
+        const payload = {
+            soilType: config.soilType,
+            targetMoisture: Number(config.humidity),
+            finalMoisture: Number(config.humidity),
+            compactionEnergy: Number(state.accumulatedEnergy.toFixed(2)),
+            compactionLevel: Number(state.relativeDensity.toFixed(2)),
+            estimatedDryDensity: Number((1.45 + state.relativeDensity * 0.0075).toFixed(3)),
+            timestamp: new Date().toISOString(),
+            status
+        };
+        try {
+            localStorage.setItem(PREPARATION_STATE_STORAGE_KEY, JSON.stringify(payload));
+        } catch (error) {
+            console.warn('No se pudo guardar el estado de preparación:', error);
+        }
+    }
+
     function getInputConfig() {
         return {
             force: Number(forceInput.value),
@@ -210,6 +231,8 @@ function initializePreparationSimulation() {
                 requestAnimationFrame(stepSimulation);
             }, 500);
         }
+
+        persistPreparationState(isRunning ? 'in-progress' : 'completed');
     }
 
     function resetSimulation() {
@@ -227,6 +250,7 @@ function initializePreparationSimulation() {
         state.heightReduction = 0;
         state.estimatedFinalHeight = 20;
         state.currentPhase = 'Listo para iniciar';
+        persistPreparationState('reset');
         updateInputLabels();
         updatePhaseBlock();
         drawSimulation();
@@ -253,6 +277,7 @@ function initializePreparationSimulation() {
         input.addEventListener('input', () => {
             updateInputLabels();
             drawSimulation();
+            persistPreparationState(isRunning ? 'in-progress' : 'configured');
         });
     });
 
