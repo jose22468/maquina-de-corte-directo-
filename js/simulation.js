@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const RUNS_STORAGE_KEY = 'directShear:runs';
     const SIMULATION_STORAGE_KEY = 'directShear:lastSimulation';
     const FAILURE_CRITERION_STORAGE_KEY = 'directShear:failureCriterion';
+    const PREPARATION_STATE_STORAGE_KEY = 'directShear:preparationState';
 
     const sampleDimensions = { lengthMm: 60, widthMm: 60 };
     const initialAreaMm2 = sampleDimensions.lengthMm * sampleDimensions.widthMm;
@@ -73,6 +74,52 @@ document.addEventListener('DOMContentLoaded', function() {
         points: [],
         consolidationPoints: []
     };
+    let preparationState = null;
+    let preparationRequiredWarning = null;
+
+    function getPreparationState() {
+        try {
+            const raw = localStorage.getItem(PREPARATION_STATE_STORAGE_KEY);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            if (!parsed?.timestamp || !parsed?.soilType) return null;
+            return parsed;
+        } catch (error) {
+            console.warn('No se pudo leer estado preparatorio:', error);
+            return null;
+        }
+    }
+
+    function applyPreparationAdjustments(prep) {
+        if (!prep) return;
+        const compactLevel = Number(prep.compactionLevel);
+        const moisture = Number(prep.finalMoisture);
+        if (Number.isFinite(compactLevel)) {
+            const compactFactor = Math.max(-1, Math.min(1, (compactLevel - 65) / 35));
+            cohesion = Math.max(0, Math.round(cohesion + compactFactor * 6));
+            frictionAngle = Math.max(10, Math.min(45, Math.round(frictionAngle + compactFactor * 4)));
+        }
+        if (Number.isFinite(moisture)) {
+            saturation = moisture >= 18 ? 'saturated' : 'dry';
+        }
+    }
+
+    function renderPreparationIndicator(prep) {
+        const indicator = document.getElementById('prepInheritedIndicator');
+        const textEl = document.getElementById('prepInheritedText');
+        if (!indicator || !textEl) return;
+        if (!prep) {
+            indicator.style.display = 'block';
+            indicator.classList.add('warning');
+            textEl.textContent = 'Sin datos preparatorios válidos. Puedes continuar, pero se recomienda completar Preparación.';
+            return;
+        }
+        const compact = Number(prep.compactionLevel);
+        const moisture = Number(prep.finalMoisture);
+        indicator.style.display = 'block';
+        indicator.classList.remove('warning');
+        textEl.textContent = `Tipo: ${prep.soilType} | Compactación: ${Number.isFinite(compact) ? compact.toFixed(1) : '-'}% | Humedad final: ${Number.isFinite(moisture) ? moisture.toFixed(1) : '-'}%`;
+    }
 
     function getTableDataFromDOM() {
         const rows = document.querySelectorAll('#simulationDataBody tr');
@@ -408,7 +455,8 @@ document.addEventListener('DOMContentLoaded', function() {
             points: chartData.points,
             consolidationPoints: chartData.consolidationPoints,
             tableData: getTableDataFromDOM(),
-            phase: simulationData.phase
+            phase: simulationData.phase,
+            preparationSnapshot: preparationState
         };
     }
 
@@ -668,6 +716,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function startSimulation() {
         if (isRunning) return;
+        if (preparationRequiredWarning) {
+            preparationRequiredWarning.remove();
+            preparationRequiredWarning = null;
+        }
+        if (!preparationState) {
+            preparationRequiredWarning = document.createElement('p');
+            preparationRequiredWarning.className = 'edu-question';
+            preparationRequiredWarning.textContent = 'Advertencia educativa: no se encontró un preparatorio válido; los parámetros no fueron heredados.';
+            document.querySelector('.results')?.prepend(preparationRequiredWarning);
+        }
         if (!simulationData.consolidationComplete && simulationData.phase === 'finished') {
             setPhase('consolidation');
             chartData.points = [];
@@ -854,8 +912,14 @@ document.addEventListener('DOMContentLoaded', function() {
     pauseBtn.addEventListener('click', pauseSimulation);
     resetBtn.addEventListener('click', resetSimulation);
 
+    preparationState = getPreparationState();
+    applyPreparationAdjustments(preparationState);
+    cohesionSlider.value = cohesion;
+    frictionSlider.value = frictionAngle;
+    saturationSelect.value = saturation;
     updateControlValues();
     initCharts();
+    renderPreparationIndicator(preparationState);
     setupSimulationTable();
     renderRunSummary();
         refreshHistoricalDatasets();
