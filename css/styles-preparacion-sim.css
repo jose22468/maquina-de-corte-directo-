@@ -1,0 +1,58 @@
+.prep-simulator-section canvas {
+    width: 100%;
+    max-width: 640px;
+    border: 1px solid #d5dce5;
+    border-radius: 10px;
+    background: #f4f6f9;
+    display: block;
+    margin: 1rem auto;
+}
+
+.prep-sim-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.8rem;
+    margin: 1rem 0;
+}
+
+.prep-sim-controls label {
+    display: flex;
+    flex-direction: column;
+    font-weight: 600;
+    color: #2c3e50;
+    gap: 0.4rem;
+}
+
+.prep-sim-controls input,
+.prep-sim-controls select {
+    padding: 0.45rem;
+    border: 1px solid #ced6e0;
+    border-radius: 6px;
+}
+
+.prep-sim-actions {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin: 0.5rem 0 1rem;
+}
+
+.prep-sim-actions button {
+    background: #2e86de;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.55rem 1rem;
+    cursor: pointer;
+}
+
+.prep-sim-actions button:hover {
+    background: #1f6fbd;
+}
+
+.prep-step-block {
+    background: #f8fafc;
+    border-left: 4px solid #2e86de;
+    border-radius: 8px;
+    padding: 0.9rem 1rem;
+}

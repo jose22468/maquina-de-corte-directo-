@@ -8,6 +8,7 @@
     <!-- CAMBIO IMPORTANTE: Cargar styles.css primero -->
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/styles4.css">
+    <link rel="stylesheet" href="css/styles-preparacion-sim.css">
 </head>
 <body>
     <!-- Usamos el mismo header que las otras páginas -->
@@ -240,6 +241,52 @@
                         <li><input type="checkbox" id="repetibilidad"> <label for="repetibilidad">Comprobar repetibilidad mínima entre corridas.</label></li>
                         <li><input type="checkbox" id="invalidacion"> <label for="invalidacion">Documentar criterios para invalidar ensayo si no cumple.</label></li>
                     </ul>
+                </div>
+            </div>
+
+
+            <div class="checklist-section prep-simulator-section">
+                <h2>Simulador de compactación de muestra</h2>
+                <p class="section-subtitle">Ajusta parámetros y observa el proceso de compactación por capas en tiempo real.</p>
+
+                <div class="prep-sim-controls">
+                    <label>Fuerza/Energía de compactación
+                        <input type="range" id="prepForce" min="10" max="60" step="1" value="30">
+                        <span id="prepForceValue">30 kN/m³</span>
+                    </label>
+                    <label>Número de capas
+                        <input type="number" id="prepLayers" min="1" max="6" value="3">
+                    </label>
+                    <label>Número de golpes por capa
+                        <input type="number" id="prepBlows" min="1" max="30" value="8">
+                    </label>
+                    <label>Humedad objetivo
+                        <input type="range" id="prepHumidity" min="5" max="30" step="0.5" value="14">
+                        <span id="prepHumidityValue">14%</span>
+                    </label>
+                    <label>Tipo de suelo
+                        <select id="prepSoilType">
+                            <option value="arena">Arena</option>
+                            <option value="limo">Limo</option>
+                            <option value="arcilla">Arcilla</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div class="prep-sim-actions">
+                    <button id="prepStartBtn" type="button">Iniciar</button>
+                    <button id="prepPauseBtn" type="button">Pausar</button>
+                    <button id="prepResetBtn" type="button">Reiniciar</button>
+                </div>
+
+                <canvas id="prepSimulationCanvas" width="640" height="360" aria-label="Simulación de compactación"></canvas>
+
+                <div class="prep-step-block">
+                    <h3>Paso a paso</h3>
+                    <p><strong>Fase:</strong> <span id="prepPhase">Listo para iniciar</span></p>
+                    <p><strong>Energía acumulada:</strong> <span id="prepEnergy">0.0 kJ/m³</span></p>
+                    <p><strong>% compactación:</strong> <span id="prepCompaction">35.0%</span></p>
+                    <p><strong>Altura final estimada:</strong> <span id="prepHeight">20.00 mm</span></p>
                 </div>
             </div>
 
