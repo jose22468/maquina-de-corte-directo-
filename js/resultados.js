@@ -363,7 +363,7 @@
                                 showLine: false
                             }]
                         },
-                        options: { responsive: true, maintainAspectRatio: false, devicePixelRatio: chartDpi, plugins: chartCommonPlugins, scales: { x: { type: 'linear', title: { display: true, text: 'Desplazamiento Horizontal (mm)', ...chartTextOptions }, ticks: chartTextOptions, beginAtZero: true }, y: { title: { display: true, text: 'Esfuerzo de Corte (kPa)', ...chartTextOptions }, ticks: chartTextOptions, beginAtZero: true, min: 0, max: 400 } } }
+                        options: { responsive: true, maintainAspectRatio: true, aspectRatio: 16 / 9, devicePixelRatio: chartDpi, plugins: chartCommonPlugins, scales: { x: { type: 'linear', title: { display: true, text: 'Desplazamiento Horizontal (mm)', ...chartTextOptions }, ticks: chartTextOptions, beginAtZero: true }, y: { title: { display: true, text: 'Esfuerzo de Corte (kPa)', ...chartTextOptions }, ticks: chartTextOptions, beginAtZero: true, min: 0, max: 400 } } }
                     });
                 }
 
@@ -373,7 +373,7 @@
                     failureEnvelopeChartInstance = new Chart(failureEnvelopeChartCanvas.getContext('2d'), {
                         type: 'scatter',
                         data: { datasets: [{ label: `Puntos experimentales (${analysis.criterion})`, data: analysis.metrics.map((item) => ({ x: item.normalStress, y: item.failureShear })), backgroundColor: '#1e3c72', pointRadius: 6 }, { label: 'Recta ajustada', data: analysis.linePoints, borderColor: '#dc3545', backgroundColor: 'rgba(220, 53, 69, 0.1)', borderWidth: 2, fill: false, showLine: true, pointRadius: 0 }] },
-                        options: { responsive: true, maintainAspectRatio: false, devicePixelRatio: chartDpi, plugins: chartCommonPlugins, scales: { x: { title: { display: true, text: 'Esfuerzo Normal (kPa)', ...chartTextOptions }, ticks: chartTextOptions, beginAtZero: true, max: 450 }, y: { title: { display: true, text: 'Resistencia al Corte (kPa)', ...chartTextOptions }, ticks: chartTextOptions, beginAtZero: true, max: 300 } } }
+                        options: { responsive: true, maintainAspectRatio: true, aspectRatio: 16 / 9, devicePixelRatio: chartDpi, plugins: chartCommonPlugins, scales: { x: { title: { display: true, text: 'Esfuerzo Normal (kPa)', ...chartTextOptions }, ticks: chartTextOptions, beginAtZero: true, max: 450 }, y: { title: { display: true, text: 'Resistencia al Corte (kPa)', ...chartTextOptions }, ticks: chartTextOptions, beginAtZero: true, max: 300 } } }
                     });
                 }
             }

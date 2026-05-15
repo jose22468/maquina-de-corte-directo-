@@ -408,9 +408,10 @@
 /* ===== ESTILOS PARA RESULTADOS ===== */
 .results-container {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: minmax(0, 1.7fr) minmax(360px, 1fr);
     gap: 2rem;
     margin: 2rem 0;
+    align-items: start;
 }
 
 .results-charts {
@@ -434,9 +435,10 @@
 }
 
 .chart-item canvas {
-    width: min(100%, 760px) !important;
-    height: 430px !important;
-    max-width: 100%;
+    width: min(100%, 900px) !important;
+    height: auto !important;
+    aspect-ratio: 16 / 9;
+    max-height: 520px;
     image-rendering: auto;
 }
 
@@ -632,7 +634,8 @@ tr:hover {
     
     .chart-item canvas {
         width: 100% !important;
-        height: 300px !important;
+        height: auto !important;
+        aspect-ratio: 16 / 10;
     }
 }
 
