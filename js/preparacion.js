@@ -93,6 +93,7 @@ function initializePreparationSimulation() {
 
     const ctx = canvas.getContext('2d');
     let animationId = null;
+    let persistTimer = null;
     let isRunning = false;
     let phaseTick = 0;
 
@@ -130,6 +131,14 @@ function initializePreparationSimulation() {
         } catch (error) {
             console.warn('No se pudo guardar el estado de preparación:', error);
         }
+    }
+
+    function schedulePersist(status = 'in-progress', delayMs = 300) {
+        if (persistTimer) clearTimeout(persistTimer);
+        persistTimer = setTimeout(() => {
+            persistPreparationState(status);
+            persistTimer = null;
+        }, delayMs);
     }
 
     function getInputConfig() {
@@ -232,7 +241,11 @@ function initializePreparationSimulation() {
             }, 500);
         }
 
-        persistPreparationState(isRunning ? 'in-progress' : 'completed');
+        if (isRunning) {
+            schedulePersist('in-progress', 800);
+        } else {
+            persistPreparationState('completed');
+        }
     }
 
     function resetSimulation() {
@@ -270,6 +283,7 @@ function initializePreparationSimulation() {
         }
         state.currentPhase = 'Pausado';
         updatePhaseBlock();
+        persistPreparationState('paused');
     });
 
     resetBtn.addEventListener('click', resetSimulation);
@@ -277,7 +291,7 @@ function initializePreparationSimulation() {
         input.addEventListener('input', () => {
             updateInputLabels();
             drawSimulation();
-            persistPreparationState(isRunning ? 'in-progress' : 'configured');
+            schedulePersist(isRunning ? 'in-progress' : 'configured', 250);
         });
     });
 

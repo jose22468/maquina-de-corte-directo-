@@ -1,7 +1,11 @@
-const RUNS_STORAGE_KEY = 'directShear:runs';
+        const RUNS_STORAGE_KEY = 'directShear:runs';
         const FAILURE_CRITERION_STORAGE_KEY = 'directShear:failureCriterion';
         const REPORT_METADATA_STORAGE_KEY = 'directShear:reportMetadata';
         const PREPARATION_STORAGE_KEY = 'directShear:preparationSheet';
+        const PREPARATION_STATE_STORAGE_KEY = 'directShear:preparationState';
+        const LAST_SIMULATION_STORAGE_KEY = 'directShear:lastSimulation';
+        const LAST_RUN_STORAGE_KEY = 'directShearLastRun';
+        const RESULTS_STORAGE_PREFIX = 'directShear:result';
 
         function getReportMetadata() {
             try {
@@ -180,6 +184,23 @@ const RUNS_STORAGE_KEY = 'directShear:runs';
             }
         }
 
+        function clearResultsStorage() {
+            const keysToRemove = [
+                PREPARATION_STORAGE_KEY,
+                PREPARATION_STATE_STORAGE_KEY,
+                LAST_SIMULATION_STORAGE_KEY,
+                LAST_RUN_STORAGE_KEY,
+                RUNS_STORAGE_KEY,
+                FAILURE_CRITERION_STORAGE_KEY,
+                REPORT_METADATA_STORAGE_KEY
+            ];
+
+            keysToRemove.forEach((key) => localStorage.removeItem(key));
+            Object.keys(localStorage)
+                .filter((key) => key.startsWith(RESULTS_STORAGE_PREFIX))
+                .forEach((key) => localStorage.removeItem(key));
+        }
+
         function getFailureCriterion() {
             const raw = localStorage.getItem(FAILURE_CRITERION_STORAGE_KEY);
             return raw === 'residual' ? 'residual' : 'peak';
@@ -262,26 +283,7 @@ const RUNS_STORAGE_KEY = 'directShear:runs';
 
         // Inicializar gráficos en la página de resultados
         document.addEventListener('DOMContentLoaded', function() {
-            const runs = getRunCollection();
-            const criterion = getFailureCriterion();
-            const analysis = computeFailureAnalysis(runs, criterion);
-            const metadataState = getReportMetadata();
-            const preparationSheet = getPreparationSheet();
-            renderPreparationSheet(preparationSheet);
-
             const tableBody = document.getElementById('resultsTableBody');
-            tableBody.innerHTML = '';
-            analysis.metrics.forEach((item) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${item.normalStress.toFixed(2)}</td>
-                    <td>${item.peakShear.toFixed(2)}</td>
-                    <td>${item.displacementAtPeak.toFixed(2)}</td>
-                    <td>${item.residualShear.toFixed(2)}</td>
-                `;
-                tableBody.appendChild(row);
-            });
-
             const fitQuality = document.getElementById('fitQualityInfo');
             const warning = document.getElementById('preliminaryWarning');
             const cohesionValue = document.getElementById('cohesionValue');
@@ -294,11 +296,128 @@ const RUNS_STORAGE_KEY = 'directShear:runs';
             const validationMessage = document.getElementById('validationMessage');
             const conclusionBehavior = document.getElementById('conclusionBehavior');
             const conclusionRecommendation = document.getElementById('conclusionRecommendation');
+            const preparationSheetContent = document.getElementById('preparationSheetContent');
+            const preparationUpdatedAt = document.getElementById('preparationUpdatedAt');
+            const resetAllDataBtn = document.getElementById('resetAllDataBtn');
+            let stressStrainChartInstance = null;
+            let failureEnvelopeChartInstance = null;
 
-            sampleIdInput.value = metadataState.sampleId;
-            testDateInput.value = metadataState.testDate;
-            operatorInput.value = metadataState.operator;
-            standardInput.value = metadataState.standard;
+            function showValidationMessage(message, isError = true) {
+                validationMessage.style.display = 'block';
+                validationMessage.style.color = isError ? '#b3261e' : '#1b7f3b';
+                validationMessage.textContent = message;
+            }
+
+            function hideValidationMessage() {
+                validationMessage.style.display = 'none';
+                validationMessage.textContent = '';
+            }
+
+            function renderCharts(runs, analysis) {
+                const chartTextOptions = {
+                    color: '#1f2d3d',
+                    font: { size: 14, weight: '600' }
+                };
+
+                const chartCommonPlugins = {
+                    legend: {
+                        labels: {
+                            color: '#1f2d3d',
+                            font: { size: 13 }
+                        }
+                    }
+                };
+
+                const chartDpi = Math.max(2, window.devicePixelRatio || 1);
+                const datasets = runs
+                    .map((run, idx) => {
+                        const points = toSafePoints(run?.points);
+                        if (!points.length) return null;
+                        const hue = (idx * 53) % 360;
+                        return {
+                            label: `σ=${Number(run?.normalStress || 0).toFixed(0)} kPa`,
+                            data: points,
+                            parsing: false,
+                            borderColor: `hsl(${hue}, 65%, 35%)`,
+                            backgroundColor: `hsla(${hue}, 65%, 35%, 0.1)`,
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.2,
+                            pointRadius: 1
+                        };
+                    })
+                    .filter(Boolean);
+
+                const stressStrainChartCanvas = document.getElementById('stressStrainChart');
+                if (stressStrainChartCanvas) {
+                    if (stressStrainChartInstance) stressStrainChartInstance.destroy();
+                    stressStrainChartInstance = new Chart(stressStrainChartCanvas.getContext('2d'), {
+                        type: 'line',
+                        data: {
+                            datasets: datasets.length ? datasets : [{
+                                label: 'Sin corridas disponibles',
+                                data: [{ x: 0, y: 0 }],
+                                parsing: false,
+                                borderColor: '#9aa0a6',
+                                pointRadius: 3,
+                                showLine: false
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: true, aspectRatio: 16 / 9, devicePixelRatio: chartDpi, plugins: chartCommonPlugins, scales: { x: { type: 'linear', title: { display: true, text: 'Desplazamiento Horizontal (mm)', ...chartTextOptions }, ticks: chartTextOptions, beginAtZero: true }, y: { title: { display: true, text: 'Esfuerzo de Corte (kPa)', ...chartTextOptions }, ticks: chartTextOptions, beginAtZero: true, min: 0, max: 400 } } }
+                    });
+                }
+
+                const failureEnvelopeChartCanvas = document.getElementById('failureEnvelopeChart');
+                if (failureEnvelopeChartCanvas) {
+                    if (failureEnvelopeChartInstance) failureEnvelopeChartInstance.destroy();
+                    failureEnvelopeChartInstance = new Chart(failureEnvelopeChartCanvas.getContext('2d'), {
+                        type: 'scatter',
+                        data: { datasets: [{ label: `Puntos experimentales (${analysis.criterion})`, data: analysis.metrics.map((item) => ({ x: item.normalStress, y: item.failureShear })), backgroundColor: '#1e3c72', pointRadius: 6 }, { label: 'Recta ajustada', data: analysis.linePoints, borderColor: '#dc3545', backgroundColor: 'rgba(220, 53, 69, 0.1)', borderWidth: 2, fill: false, showLine: true, pointRadius: 0 }] },
+                        options: { responsive: true, maintainAspectRatio: true, aspectRatio: 16 / 9, devicePixelRatio: chartDpi, plugins: chartCommonPlugins, scales: { x: { title: { display: true, text: 'Esfuerzo Normal (kPa)', ...chartTextOptions }, ticks: chartTextOptions, beginAtZero: true, max: 450 }, y: { title: { display: true, text: 'Resistencia al Corte (kPa)', ...chartTextOptions }, ticks: chartTextOptions, beginAtZero: true, max: 300 } } }
+                    });
+                }
+            }
+
+            function renderAll() {
+                const runs = getRunCollection();
+                const criterion = getFailureCriterion();
+                const analysis = computeFailureAnalysis(runs, criterion);
+                const metadataState = getReportMetadata();
+                const preparationSheet = getPreparationSheet();
+                renderPreparationSheet(preparationSheet);
+                tableBody.innerHTML = '';
+                analysis.metrics.forEach((item) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${item.normalStress.toFixed(2)}</td><td>${item.peakShear.toFixed(2)}</td><td>${item.displacementAtPeak.toFixed(2)}</td><td>${item.residualShear.toFixed(2)}</td>`;
+                    tableBody.appendChild(row);
+                });
+                sampleIdInput.value = metadataState.sampleId;
+                testDateInput.value = metadataState.testDate;
+                operatorInput.value = metadataState.operator;
+                standardInput.value = metadataState.standard;
+
+                if (analysis.fit) {
+                    const friction = Math.atan(analysis.fit.slope) * (180 / Math.PI);
+                    cohesionValue.textContent = `${analysis.fit.intercept.toFixed(2)} kPa`;
+                    frictionValue.textContent = `${friction.toFixed(2)}°`;
+                    fitQuality.innerHTML = `<strong>Calidad de ajuste:</strong> R²: ${analysis.fit.r2.toFixed(4)} | Corridas válidas: ${analysis.validRuns} | Criterio: ${analysis.criterion}`;
+                    const behavior = getBehaviorType(analysis.fit.intercept, friction);
+                    conclusionBehavior.textContent = `Tipo de comportamiento: ${behavior}`;
+                    conclusionRecommendation.textContent = `Recomendación de parámetros: ${getParameterRecommendation(behavior, analysis.criterion)}`;
+                } else {
+                    cohesionValue.textContent = '-- kPa';
+                    frictionValue.textContent = '--°';
+                    fitQuality.innerHTML = `<strong>Calidad de ajuste:</strong> R²: -- | Corridas válidas: ${analysis.validRuns} | Criterio: ${analysis.criterion}`;
+                    conclusionBehavior.textContent = 'Tipo de comportamiento: indeterminado (faltan datos para ajustar c y φ).';
+                    conclusionRecommendation.textContent = 'Recomendación de parámetros: complete al menos 3 corridas válidas para emitir una conclusión robusta.';
+                }
+                maxShearValue.textContent = `${analysis.maxShear.toFixed(2)} kPa`;
+                warning.style.display = analysis.preliminary ? 'block' : 'none';
+                renderCharts(runs, analysis);
+                return { runs, analysis, preparationSheet };
+            }
+
+            let currentState = renderAll();
 
             const metadataInputs = [sampleIdInput, testDateInput, operatorInput, standardInput];
             metadataInputs.forEach((input) => {
@@ -312,25 +431,6 @@ const RUNS_STORAGE_KEY = 'directShear:runs';
                 });
             });
 
-            if (analysis.fit) {
-                const friction = Math.atan(analysis.fit.slope) * (180 / Math.PI);
-                cohesionValue.textContent = `${analysis.fit.intercept.toFixed(2)} kPa`;
-                frictionValue.textContent = `${friction.toFixed(2)}°`;
-                fitQuality.innerHTML = `<strong>Calidad de ajuste:</strong> R²: ${analysis.fit.r2.toFixed(4)} | Corridas válidas: ${analysis.validRuns} | Criterio: ${analysis.criterion}`;
-
-                const behavior = getBehaviorType(analysis.fit.intercept, friction);
-                conclusionBehavior.textContent = `Tipo de comportamiento: ${behavior}`;
-                conclusionRecommendation.textContent = `Recomendación de parámetros: ${getParameterRecommendation(behavior, analysis.criterion)}`;
-            } else {
-                cohesionValue.textContent = '-- kPa';
-                frictionValue.textContent = '--°';
-                fitQuality.innerHTML = `<strong>Calidad de ajuste:</strong> R²: -- | Corridas válidas: ${analysis.validRuns} | Criterio: ${analysis.criterion}`;
-                conclusionBehavior.textContent = 'Tipo de comportamiento: indeterminado (faltan datos para ajustar c y φ).';
-                conclusionRecommendation.textContent = 'Recomendación de parámetros: complete al menos 3 corridas válidas para emitir una conclusión robusta.';
-            }
-            maxShearValue.textContent = `${analysis.maxShear.toFixed(2)} kPa`;
-            warning.style.display = analysis.preliminary ? 'block' : 'none';
-
             function validateBeforeExport() {
                 const metadata = {
                     sampleId: sampleIdInput.value.trim(),
@@ -339,14 +439,12 @@ const RUNS_STORAGE_KEY = 'directShear:runs';
                     standard: standardInput.value
                 };
                 saveReportMetadata(metadata);
-                const missing = validateCriticalData(runs, analysis, metadata);
+                const missing = validateCriticalData(currentState.runs, currentState.analysis, metadata);
                 if (missing.length) {
-                    validationMessage.style.display = 'block';
-                    validationMessage.textContent = `⚠ Faltan datos críticos: ${missing.join(', ')}.`;
+                    showValidationMessage(`⚠ Faltan datos críticos: ${missing.join(', ')}.`);
                     return null;
                 }
-                validationMessage.style.display = 'none';
-                validationMessage.textContent = '';
+                hideValidationMessage();
                 return metadata;
             }
 
@@ -357,7 +455,7 @@ const RUNS_STORAGE_KEY = 'directShear:runs';
             exportJsonBtn.addEventListener('click', () => {
                 const metadata = validateBeforeExport();
                 if (!metadata) return;
-                const payload = buildExportPayload(runs, analysis, metadata, preparationSheet);
+                const payload = buildExportPayload(currentState.runs, currentState.analysis, metadata, currentState.preparationSheet);
                 const stamp = metadata.testDate || new Date().toISOString().slice(0, 10);
                 downloadFile(JSON.stringify(payload, null, 2), `ensayo-corte-directo-${stamp}.json`, 'application/json;charset=utf-8');
             });
@@ -366,12 +464,12 @@ const RUNS_STORAGE_KEY = 'directShear:runs';
                 const metadata = validateBeforeExport();
                 if (!metadata) return;
                 const header = ['ID muestra', 'Fecha', 'Operador', 'Norma', 'Criterio', 'σn (kPa)', 'τ pico (kPa)', 'Despl. falla (mm)', 'τ residual (kPa)', 'τ usada (kPa)'];
-                const rows = analysis.metrics.map((item) => [
+                const rows = currentState.analysis.metrics.map((item) => [
                     metadata.sampleId,
                     metadata.testDate,
                     metadata.operator,
                     metadata.standard,
-                    analysis.criterion,
+                    currentState.analysis.criterion,
                     item.normalStress,
                     item.peakShear,
                     item.displacementAtPeak,
@@ -381,14 +479,14 @@ const RUNS_STORAGE_KEY = 'directShear:runs';
                 const csvLines = [header, ...rows]
                     .map((row) => row.map(escapeCsvValue).join(','));
 
-                if (preparationSheet.rows.length) {
+                if (currentState.preparationSheet.rows.length) {
                     csvLines.push('');
                     csvLines.push('Hoja de preparación');
-                    csvLines.push(`updatedAt,${escapeCsvValue(preparationSheet.updatedAt || '')}`);
-                    if (preparationSheet.headers.length) {
-                        csvLines.push(preparationSheet.headers.map(escapeCsvValue).join(','));
+                    csvLines.push(`updatedAt,${escapeCsvValue(currentState.preparationSheet.updatedAt || '')}`);
+                    if (currentState.preparationSheet.headers.length) {
+                        csvLines.push(currentState.preparationSheet.headers.map(escapeCsvValue).join(','));
                     }
-                    preparationSheet.rows.forEach((row) => {
+                    currentState.preparationSheet.rows.forEach((row) => {
                         csvLines.push((Array.isArray(row) ? row : []).map(escapeCsvValue).join(','));
                     });
                 }
@@ -403,143 +501,16 @@ const RUNS_STORAGE_KEY = 'directShear:runs';
                 renderPreparationSheet(currentPreparationSheet);
                 window.print();
             });
-
-            const chartTextOptions = {
-                color: '#1f2d3d',
-                font: { size: 14, weight: '600' }
-            };
-
-            const chartCommonPlugins = {
-                legend: {
-                    labels: {
-                        color: '#1f2d3d',
-                        font: { size: 13 }
-                    }
-                }
-            };
-
-            const chartDpi = Math.max(2, window.devicePixelRatio || 1);
-
-            const datasets = runs
-                .map((run, idx) => {
-                    const points = toSafePoints(run?.points);
-                    if (!points.length) return null;
-                    const hue = (idx * 53) % 360;
-                    return {
-                        label: `σ=${Number(run?.normalStress || 0).toFixed(0)} kPa`,
-                        data: points,
-                        parsing: false,
-                        borderColor: `hsl(${hue}, 65%, 35%)`,
-                        backgroundColor: `hsla(${hue}, 65%, 35%, 0.1)`,
-                        borderWidth: 2,
-                        fill: false,
-                        tension: 0.2,
-                        pointRadius: 1
-                    };
-                })
-                .filter(Boolean);
-
-            // Gráfico de esfuerzo vs deformación
-            const stressStrainChartCanvas = document.getElementById('stressStrainChart');
-            if (stressStrainChartCanvas) {
-                const ctx = stressStrainChartCanvas.getContext('2d');
-
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        datasets: datasets.length ? datasets : [{
-                            label: 'Sin corridas disponibles',
-                            data: [{ x: 0, y: 0 }],
-                            parsing: false,
-                            borderColor: '#9aa0a6',
-                            pointRadius: 3,
-                            showLine: false
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        devicePixelRatio: chartDpi,
-                        plugins: chartCommonPlugins,
-                        scales: {
-                            x: {
-                                type: 'linear',
-                                title: {
-                                    display: true,
-                                    text: 'Desplazamiento Horizontal (mm)',
-                                    ...chartTextOptions
-                                },
-                                ticks: chartTextOptions,
-                                beginAtZero: true
-                            },
-                            y: {
-                                title: {
-                                    display: true,
-                                    text: 'Esfuerzo de Corte (kPa)',
-                                    ...chartTextOptions
-                                },
-                                ticks: chartTextOptions,
-                                beginAtZero: true,
-                                min: 0,
-                                max: 400
-                            }
-                        }
-                    }
-                });
-            }
-
-            // Gráfico de envolvente de falla
-            const failureEnvelopeChartCanvas = document.getElementById('failureEnvelopeChart');
-            if (failureEnvelopeChartCanvas) {
-                const ctx = failureEnvelopeChartCanvas.getContext('2d');
-
-                new Chart(ctx, {
-                    type: 'scatter',
-                    data: {
-                        datasets: [{
-                            label: `Puntos experimentales (${analysis.criterion})`,
-                            data: analysis.metrics.map((item) => ({ x: item.normalStress, y: item.failureShear })),
-                            backgroundColor: '#1e3c72',
-                            pointRadius: 6
-                        }, {
-                            label: 'Recta ajustada',
-                            data: analysis.linePoints,
-                            borderColor: '#dc3545',
-                            backgroundColor: 'rgba(220, 53, 69, 0.1)',
-                            borderWidth: 2,
-                            fill: false,
-                            showLine: true,
-                            pointRadius: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        devicePixelRatio: chartDpi,
-                        plugins: chartCommonPlugins,
-                        scales: {
-                            x: {
-                                title: {
-                                    display: true,
-                                    text: 'Esfuerzo Normal (kPa)',
-                                    ...chartTextOptions
-                                },
-                                ticks: chartTextOptions,
-                                beginAtZero: true,
-                                max: 450
-                            },
-                            y: {
-                                title: {
-                                    display: true,
-                                    text: 'Resistencia al Corte (kPa)',
-                                    ...chartTextOptions
-                                },
-                                ticks: chartTextOptions,
-                                beginAtZero: true,
-                                max: 300
-                            }
-                        }
-                    }
+            if (resetAllDataBtn) {
+                resetAllDataBtn.addEventListener('click', () => {
+                    const accepted = window.confirm('Se eliminarán todas las corridas, metadatos y hoja de preparación. ¿Desea continuar?');
+                    if (!accepted) return;
+                    clearResultsStorage();
+                    currentState = renderAll();
+                    if (preparationSheetContent) preparationSheetContent.textContent = 'No hay datos de preparación registrados';
+                    if (preparationUpdatedAt) preparationUpdatedAt.textContent = '';
+                    hideValidationMessage();
+                    showValidationMessage('✅ Datos reiniciados correctamente.', false);
                 });
             }
         });
